@@ -5,14 +5,15 @@ import {
   Button,
   StyleSheet,
   TouchableOpacity,
-  Platform
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { fetchWord } from '../../utils/fetchWords';
 
-
 const MAX_GUESSES = 6;
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const hangmanStages = ['😃', '😐', '😕', '😣', '😖', '😭', '💀'];
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 export default function HangmanGame() {
@@ -21,14 +22,20 @@ export default function HangmanGame() {
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
   const [wrongGuesses, setWrongGuesses] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  
-
-  useEffect(() => {
-fetchWord(difficulty).then(setWord);
+  const loadWord = async () => {
+    setLoading(true);
+    const newWord = await fetchWord(difficulty);
+    setWord(newWord.toUpperCase());
     setGuessedLetters([]);
     setWrongGuesses(0);
     setGameOver(false);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadWord();
   }, [difficulty]);
 
   const guessLetter = (letter: string) => {
@@ -47,21 +54,13 @@ fetchWord(difficulty).then(setWord);
     if (allCorrect) setGameOver(true);
   };
 
- const resetGame = async () => {
-  const newWord = await fetchWord(difficulty);
-  setWord(newWord);
-  setGuessedLetters([]);
-  setWrongGuesses(0);
-  setGameOver(false);
-};
-
-
-  const displayWord = word
-    .split('')
-    .map((char) => (guessedLetters.includes(char) ? char : '_'))
-    .join(' ');
-
   const isWin = word.split('').every((char) => guessedLetters.includes(char));
+
+  const displayWord = word.split('').map((char, index) => (
+    <Text key={index} style={styles.letter}>
+      {guessedLetters.includes(char) ? char : '_'}
+    </Text>
+  ));
 
   return (
     <View style={styles.container}>
@@ -77,62 +76,123 @@ fetchWord(difficulty).then(setWord);
         <Picker.Item label="Hard" value="hard" />
       </Picker>
 
-      <Text style={styles.word}>{displayWord}</Text>
-      <Text style={styles.status}>
-        Wrong guesses: {wrongGuesses} / {MAX_GUESSES}
-      </Text>
+      <Text style={styles.hangman}>{hangmanStages[wrongGuesses]}</Text>
 
-      <View style={styles.keyboard}>
-        {ALPHABET.map((letter) => (
-          <TouchableOpacity
-            key={letter}
-            onPress={() => guessLetter(letter)}
-            disabled={guessedLetters.includes(letter) || gameOver}
-            style={[
-              styles.key,
-              guessedLetters.includes(letter) && { backgroundColor: '#ccc' }
-            ]}
-          >
-            <Text>{letter}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {loading ? (
+        <ActivityIndicator size="large" color="#007AFF" style={{ marginVertical: 30 }} />
+      ) : (
+        <>
+          <View style={styles.wordContainer}>{displayWord}</View>
 
-      {gameOver && (
-        <View style={styles.footer}>
           <Text style={styles.status}>
-            {isWin ? '🎉 You Win!' : `💀 You Lost! Word was: ${word}`}
+            Wrong guesses: {wrongGuesses} / {MAX_GUESSES}
           </Text>
-          <Button title="Play Again" onPress={resetGame} />
-        </View>
+
+          <View style={styles.keyboard}>
+            {ALPHABET.map((letter) => {
+              const isGuessed = guessedLetters.includes(letter);
+              const isCorrect = word.includes(letter);
+              return (
+                <TouchableOpacity
+                  key={letter}
+                  onPress={() => guessLetter(letter)}
+                  disabled={isGuessed || gameOver}
+                  style={[
+                    styles.key,
+                    isGuessed && {
+                      backgroundColor: isCorrect ? '#c0f5d2' : '#f5c0c0',
+                    },
+                  ]}
+                >
+                  <Text style={styles.keyText}>{letter}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {gameOver && (
+            <View style={styles.footer}>
+              <Text style={styles.resultText}>
+                {isWin ? '🎉 You Win!' : `💀 You Lost! Word was: ${word}`}
+              </Text>
+              <Button title="Play Again" onPress={loadWord} />
+            </View>
+          )}
+        </>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, alignItems: 'center' },
-  label: { fontSize: 16, marginTop: 10 },
+  container: {
+    padding: 20,
+    alignItems: 'center',
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  label: {
+    fontSize: 16,
+    marginTop: 10,
+  },
   picker: {
     width: 150,
     height: 40,
     marginVertical: 10,
     ...Platform.select({
-      android: { color: '#000' }
-    })
+      android: { color: '#000' },
+    }),
   },
-  word: { fontSize: 32, letterSpacing: 4, marginVertical: 20 },
-  status: { fontSize: 16, marginBottom: 10 },
-  keyboard: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+  hangman: {
+    fontSize: 48,
+    marginVertical: 10,
+  },
+  wordContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 20,
+    flexWrap: 'wrap',
+  },
+  letter: {
+    fontSize: 32,
+    width: 30,
+    textAlign: 'center',
+    borderBottomWidth: 2,
+    borderColor: '#000',
+    marginHorizontal: 4,
+  },
+  status: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  keyboard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingBottom: 20,
+  },
   key: {
-    padding: 8,
+    padding: 10,
     margin: 4,
-    width: 35,
-    height: 35,
+    width: 40,
+    height: 40,
     backgroundColor: '#eee',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 4
+    borderRadius: 6,
   },
-  footer: { marginTop: 20, alignItems: 'center' }
+  keyText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  resultText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
 });
