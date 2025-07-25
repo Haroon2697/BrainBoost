@@ -1,0 +1,19 @@
+# Ignore system/cache/temp files
+.cache/
+tmp/
+node_modules/
+*.log
+*.tmp
+
+# Ignore build output
+dist/
+build/
+*.apk
+*.aab
+
+# Ignore sockets
+**/dbus-*
+
+# Ignore Expo-related caches
+.expo/
+.expo-shared/
