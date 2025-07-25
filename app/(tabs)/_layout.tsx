@@ -12,7 +12,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="games"
         options={{
           title: 'Games',
           tabBarIcon: ({ color, size }) => <Ionicons name="game-controller-outline" size={size} color={color} />,
