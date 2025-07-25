@@ -1,0 +1,18 @@
+{
+  "easy": [
+    "cat", "dog", "bus", "sun", "hat", "map", "book", "cup", "ball", "pen",
+    "fish", "car", "fan", "rain", "tree", "lamp", "milk", "frog", "shoe", "star",
+    "bat", "box", "cake", "nose", "leaf", "cow", "egg", "bell", "soap", "door"
+  ],
+  "medium": [
+    "castle", "garden", "yellow", "planet", "rocket", "pillow", "window", "animal", "bottle", "shovel",
+    "school", "button", "ladder", "pencil", "mirror", "wallet", "guitar", "helmet", "circle", "pickle",
+    "drawer", "tunnel", "basket", "trophy", "camera", "forest", "bucket", "cookie", "laptop", "desert"
+  ],
+  "hard": [
+    "quizzical", "xylophone", "awkward", "rhythmic", "knapsack", "subterranean", "transcendent",
+    "philosopher", "metamorphosis", "photosynthesis", "indispensable", "hallucination", "juxtaposition",
+    "unpredictable", "reconciliation", "equilibrium", "hypothetically", "interrogation", "multiplication",
+    "environmentalist", "inconspicuous", "procrastinate", "malnourished", "misunderstanding", "abomination"
+  ]
+}

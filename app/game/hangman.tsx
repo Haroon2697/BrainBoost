@@ -1,10 +1,10 @@
-// app/game/hangman.tsx
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import HangmanGame from '../../components/games/HangmanGame';
 
-export default function HangmanGame() {
+export default function HangmanScreen() {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Hangman Game Coming Soon</Text>
+    <View style={{ flex: 1 }}>
+      <HangmanGame />
     </View>
   );
 }
