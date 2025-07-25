@@ -1,9 +1,10 @@
+// app/(tabs)/profile.tsx
 import { View, Text } from 'react-native';
 
-export default function ExploreScreen() {
+export default function ProfileScreen() {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Explore Games</Text>
+      <Text>Profile Screen</Text>
     </View>
   );
 }

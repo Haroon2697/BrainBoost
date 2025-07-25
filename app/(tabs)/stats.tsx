@@ -1,9 +1,9 @@
 import { View, Text } from 'react-native';
 
-export default function ExploreScreen() {
+export default function StatsScreen() {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Explore Games</Text>
+      <Text>Stats & Progress</Text>
     </View>
   );
 }
