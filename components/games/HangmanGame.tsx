@@ -8,8 +8,8 @@ import {
   Platform
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { fetchWord } from '../../utils/fetchWords';
 
-import wordBank from '../../assets/words.json';
 
 const MAX_GUESSES = 6;
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -22,14 +22,10 @@ export default function HangmanGame() {
   const [wrongGuesses, setWrongGuesses] = useState(0);
   const [gameOver, setGameOver] = useState(false);
 
-  const generateWord = (diff: Difficulty) => {
-    const words = wordBank[diff];
-    const random = words[Math.floor(Math.random() * words.length)];
-    return random.toUpperCase();
-  };
+  
 
   useEffect(() => {
-    setWord(generateWord(difficulty));
+fetchWord(difficulty).then(setWord);
     setGuessedLetters([]);
     setWrongGuesses(0);
     setGameOver(false);
@@ -51,12 +47,14 @@ export default function HangmanGame() {
     if (allCorrect) setGameOver(true);
   };
 
-  const resetGame = () => {
-    setWord(generateWord(difficulty));
-    setGuessedLetters([]);
-    setWrongGuesses(0);
-    setGameOver(false);
-  };
+ const resetGame = async () => {
+  const newWord = await fetchWord(difficulty);
+  setWord(newWord);
+  setGuessedLetters([]);
+  setWrongGuesses(0);
+  setGameOver(false);
+};
+
 
   const displayWord = word
     .split('')
