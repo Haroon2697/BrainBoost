@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 40,
     paddingVertical: 15,
-    paddingTop: 25,
+    marginTop: 25,
     backgroundColor: 'rgba(255,255,255,0.1)',
     marginHorizontal: 20,
     borderRadius: 15,
