@@ -1,9 +1,5 @@
-import { View, Text } from 'react-native';
+import MathChallengeGame from '../../components/games/MathChallengeGame';
 
 export default function MathChallenge() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Math Challenge Coming Soon</Text>
-    </View>
-  );
+  return <MathChallengeGame />;
 }

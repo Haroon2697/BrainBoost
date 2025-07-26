@@ -1,9 +1,5 @@
-import { View, Text } from 'react-native';
+import ReactionTimeGame from '../../components/games/ReactionTimeGame';
 
 export default function ReactionTime() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Reaction Time Game Coming Soon</Text>
-    </View>
-  );
+  return <ReactionTimeGame />;
 }

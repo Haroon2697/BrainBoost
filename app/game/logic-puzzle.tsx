@@ -1,9 +1,5 @@
-import { View, Text } from 'react-native';
+import LogicPuzzleGame from '../../components/games/LogicPuzzleGame';
 
 export default function LogicPuzzle() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Logic Puzzle Coming Soon</Text>
-    </View>
-  );
+  return <LogicPuzzleGame />;
 }

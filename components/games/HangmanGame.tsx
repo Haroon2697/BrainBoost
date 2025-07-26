@@ -1,29 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-  Dimensions,
-  StatusBar,
-} from 'react-native';
+import { Creepster_400Regular, useFonts } from '@expo-google-fonts/creepster';
+import { FredokaOne_400Regular } from '@expo-google-fonts/fredoka-one';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFonts, Creepster_400Regular } from '@expo-google-fonts/creepster';
-import { FredokaOne_400Regular } from '@expo-google-fonts/fredoka-one';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Clock, Lightbulb, RotateCcw, Trophy } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-  withTiming,
   runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { fetchWord } from '../../utils/fetchWords';
-import { ArrowLeft, Lightbulb, RotateCcw, Trophy, Clock } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
@@ -59,7 +58,7 @@ export default function HangmanGame() {
   const [timer, setTimer] = useState(0);
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Animation values
   const hangmanScale = useSharedValue(1);
@@ -268,7 +267,8 @@ export default function HangmanGame() {
             selectedValue={difficulty}
             onValueChange={(itemValue) => setDifficulty(itemValue as Difficulty)}
             style={styles.picker}
-            dropdownIconColor="white"
+            dropdownIconColor="#ffffff"
+            mode="dropdown"
           >
             <Picker.Item label="Easy" value="easy" color="white" />
             <Picker.Item label="Medium" value="medium" color="white" />
@@ -451,6 +451,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 12,
     overflow: 'hidden',
+    width: 150,
   },
   picker: {
     width: 150,
@@ -489,19 +490,20 @@ const styles = StyleSheet.create({
   wordContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     marginBottom: 40,
     paddingHorizontal: 10,
+    minHeight: 50,
   },
   letterContainer: {
-    marginHorizontal: 4,
+    marginHorizontal: 2,
     marginVertical: 4,
   },
   letter: {
-    fontSize: 32,
+    fontSize: 28,
     color: 'white',
     fontWeight: '700',
-    width: 40,
+    width: 30,
     textAlign: 'center',
     borderBottomWidth: 3,
     borderBottomColor: 'white',
