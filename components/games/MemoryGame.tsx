@@ -1,127 +1,185 @@
-import React, { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  Text,
-  Animated,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+"use client"
+
+import { useEffect, useState, useRef } from "react"
+import { View, TouchableOpacity, StyleSheet, Dimensions, Text, Animated, StatusBar } from "react-native"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 const getFlashTime = (round: number) => {
-  return Math.max(600 - (round - 1) * 20, 200);
-};
+  return Math.max(600 - (round - 1) * 20, 200)
+}
+
+type Difficulty = "easy" | "medium" | "hard" | null
+type GameStatus = "idle" | "playing" | "success" | "fail"
 
 export default function MemoryGame() {
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'custom' | null>(null);
-  const [gridSize, setGridSize] = useState(3);
-  const [sequence, setSequence] = useState<{ row: number; col: number }[]>([]);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [flashing, setFlashing] = useState(false);
-  const [activeTile, setActiveTile] = useState<string | null>(null);
-  const [selectedTiles, setSelectedTiles] = useState<string[]>([]);
-  const [status, setStatus] = useState<'idle' | 'playing' | 'success' | 'fail'>('idle');
-  const [round, setRound] = useState(1);
-  const [lives, setLives] = useState(3);
-  const [highScore, setHighScore] = useState(0);
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const [difficulty, setDifficulty] = useState<Difficulty>(null)
+  const [gridSize, setGridSize] = useState(3)
+  const [sequence, setSequence] = useState<{ row: number; col: number }[]>([])
+  const [currentStep, setCurrentStep] = useState(0)
+  const [flashing, setFlashing] = useState(false)
+  const [activeTile, setActiveTile] = useState<string | null>(null)
+  const [selectedTiles, setSelectedTiles] = useState<string[]>([])
+  const [status, setStatus] = useState<GameStatus>("idle")
+  const [round, setRound] = useState(1)
+  const [lives, setLives] = useState(3)
+  const [highScore, setHighScore] = useState(0)
 
-  const maxRounds = difficulty === 'medium' ? 40 : difficulty === 'custom' ? 50 : 20;
-  const tileSize = Dimensions.get('window').width / gridSize - 20;
+  const shakeAnim = useRef(new Animated.Value(0)).current
+  const pulseAnim = useRef(new Animated.Value(1)).current
+  const progressAnim = useRef(new Animated.Value(0)).current
 
-  const keyFromCoord = (r: number, c: number) => `${r}-${c}`;
+  const maxRounds = difficulty === "medium" ? 40 : difficulty === "hard" ? 50 : 20
+  const screenWidth = Dimensions.get("window").width
+  const tileSize = (screenWidth - 60) / gridSize - 8
+
+  const keyFromCoord = (r: number, c: number) => `${r}-${c}`
 
   const getRandomCoord = (): { row: number; col: number } => {
     return {
       row: Math.floor(Math.random() * gridSize),
       col: Math.floor(Math.random() * gridSize),
-    };
-  };
+    }
+  }
 
   const resetGame = async (size: number = gridSize) => {
-    const first = getRandomCoord();
-    setSequence([first]);
-    setStatus('idle');
-    setRound(1);
-    setLives(3);
-    setSelectedTiles([]);
-    setCurrentStep(0);
-    setGridSize(size);
-    flashSequence([first]);
+    const first = getRandomCoord()
+    setSequence([first])
+    setStatus("idle")
+    setRound(1)
+    setLives(3)
+    setSelectedTiles([])
+    setCurrentStep(0)
+    setGridSize(size)
 
-    const savedScore = await AsyncStorage.getItem('highScore');
-    if (savedScore) setHighScore(Number(savedScore));
-  };
+    // Reset animations
+    shakeAnim.setValue(0)
+    pulseAnim.setValue(1)
+    progressAnim.setValue(0)
+
+    const savedScore = await AsyncStorage.getItem("memoryGameHighScore")
+    if (savedScore) setHighScore(Number(savedScore))
+
+    setTimeout(() => flashSequence([first]), 500)
+  }
 
   const flashSequence = async (seq: { row: number; col: number }[]) => {
-    setFlashing(true);
+    setFlashing(true)
+    setStatus("idle")
+
     for (let i = 0; i < seq.length; i++) {
-      const { row, col } = seq[i];
-      setActiveTile(keyFromCoord(row, col));
-      await new Promise(res => setTimeout(res, getFlashTime(round)));
-      setActiveTile(null);
-      await new Promise(res => setTimeout(res, 300));
+      const { row, col } = seq[i]
+      setActiveTile(keyFromCoord(row, col))
+      await new Promise((res) => setTimeout(res, getFlashTime(round)))
+      setActiveTile(null)
+      await new Promise((res) => setTimeout(res, 300))
     }
-    setFlashing(false);
-    setStatus('playing');
-  };
+
+    setFlashing(false)
+    setStatus("playing")
+  }
 
   const handleTilePress = async (row: number, col: number) => {
-    if (flashing || status !== 'playing') return;
+    if (flashing || status !== "playing") return
 
-    const key = keyFromCoord(row, col);
-    const correct = sequence[currentStep];
+    const key = keyFromCoord(row, col)
+    const correct = sequence[currentStep]
 
     if (correct.row === row && correct.col === col) {
-      const newSelected = [...selectedTiles, key];
-      setSelectedTiles(newSelected);
+      // Success pulse animation (subtle)
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start()
+
+      const newSelected = [...selectedTiles, key]
+      setSelectedTiles(newSelected)
 
       if (currentStep + 1 === sequence.length) {
         if (sequence.length >= maxRounds) {
-          setStatus('success');
-          if (round > highScore) {
-            await AsyncStorage.setItem('highScore', round.toString());
-            setHighScore(round);
-          }
-          return;
-        }
+  setStatus("success")
+  if (sequence.length > highScore) {
+    await AsyncStorage.setItem("memoryGameHighScore", sequence.length.toString())
+    setHighScore(sequence.length)
+  }
+  return
+}
 
-        const next = [...sequence, getRandomCoord()];
-        setStatus('idle');
-        setRound(prev => prev + 1);
-        setSelectedTiles([]);
-        setCurrentStep(0);
-        setSequence(next);
-        flashSequence(next);
+
+        const next = [...sequence, getRandomCoord()]
+        setRound((prev) => prev + 1)
+        setSelectedTiles([])
+        setCurrentStep(0)
+        setSequence(next)
+
+        setTimeout(() => flashSequence(next), 800)
       } else {
-        setCurrentStep(prev => prev + 1);
+        setCurrentStep((prev) => prev + 1)
       }
     } else {
-      triggerShake();
+      triggerShake()
       if (lives > 1) {
-        setLives(prev => prev - 1);
-        setSelectedTiles([]);
-        setCurrentStep(0);
+        setLives((prev) => prev - 1)
+        setSelectedTiles([])
+        setCurrentStep(0)
       } else {
-        setStatus('fail');
+        setStatus("fail")
+if (sequence.length > highScore) {
+  await AsyncStorage.setItem("memoryGameHighScore", sequence.length.toString())
+  setHighScore(sequence.length)
+}
+
       }
     }
-  };
+  }
 
   const triggerShake = () => {
     Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -10, duration: 100, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
-    ]).start();
-  };
+      Animated.timing(shakeAnim, {
+        toValue: 8,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -8,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 8,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }
+
+  // Update progress animation
+  useEffect(() => {
+    const progress = Math.min(round / maxRounds, 1)
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 500,
+      useNativeDriver: false,
+    }).start()
+  }, [round, maxRounds])
 
   const renderTile = (row: number, col: number) => {
-    const key = keyFromCoord(row, col);
-    const isActive = activeTile === key;
-    const wasTapped = selectedTiles.includes(key);
+    const key = keyFromCoord(row, col)
+    const isActive = activeTile === key
+    const wasTapped = selectedTiles.includes(key)
+
     return (
       <TouchableOpacity
         key={key}
@@ -133,122 +191,375 @@ export default function MemoryGame() {
           wasTapped && styles.tappedTile,
         ]}
         disabled={flashing}
-      />
-    );
-  };
+        activeOpacity={0.8}
+      >
+        {isActive && <View style={styles.glowEffect} />}
+      </TouchableOpacity>
+    )
+  }
+
+  const renderDifficultyButton = (
+    diff: "easy" | "medium" | "hard",
+    size: number,
+    rounds: number,
+    color: string,
+    emoji: string,
+  ) => (
+    <TouchableOpacity
+      style={[styles.difficultyButton, { backgroundColor: color }]}
+      onPress={() => {
+        setDifficulty(diff)
+        resetGame(size)
+      }}
+      activeOpacity={0.8}
+    >
+      <Text style={styles.difficultyEmoji}>{emoji}</Text>
+      <Text style={styles.difficultyTitle}>{diff.charAt(0).toUpperCase() + diff.slice(1)}</Text>
+      <Text style={styles.difficultySubtitle}>
+        {size}×{size} Grid • {rounds} Rounds
+      </Text>
+    </TouchableOpacity>
+  )
 
   if (!difficulty) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Select Difficulty</Text>
-        <TouchableOpacity style={styles.button} onPress={() => { setDifficulty('easy'); resetGame(3); }}>
-          <Text style={styles.buttonText}>🟢 Easy (3x3)</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => { setDifficulty('medium'); resetGame(4); }}>
-          <Text style={styles.buttonText}>🟡 Medium (4x4)</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => { setDifficulty('custom'); resetGame(5); }}>
-          <Text style={styles.buttonText}>🔧 Hard (5x5)</Text>
-        </TouchableOpacity>
+        <StatusBar barStyle="light-content" backgroundColor="#0f0f23" />
+        <View style={styles.menuContainer}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.mainTitle}>Memory Tiles</Text>
+            <Text style={styles.subtitle}>Test your memory with flashing tiles</Text>
+          </View>
+
+          <View style={styles.difficultyContainer}>
+            {renderDifficultyButton("easy", 3, 20, "#10b981", "🎯")}
+            {renderDifficultyButton("medium", 4, 40, "#f59e0b", "⚡")}
+            {renderDifficultyButton("hard", 5, 50, "#ef4444", "🔥")}
+          </View>
+        </View>
       </View>
-    );
+    )
   }
 
-  const progress = Math.min(round / maxRounds, 1);
+  const progress = Math.min(round / maxRounds, 1)
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Memory Tile Game</Text>
-      <Text style={styles.message}>Round: {round} / {maxRounds}</Text>
-      <Text style={styles.message}>Lives: {'❤️'.repeat(lives)}</Text>
-      <Text style={styles.message}>High Score: {highScore}</Text>
+      <StatusBar barStyle="light-content" backgroundColor="#0f0f23" />
 
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.gameTitle}>Memory Tiles</Text>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Round</Text>
+            <Text style={styles.statValue}>
+              {round}/{maxRounds}
+            </Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Lives</Text>
+            <Text style={styles.statValue}>{"❤️".repeat(lives)}</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Best</Text>
+            <Text style={styles.statValue}>{highScore}</Text>
+          </View>
+        </View>
+
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "100%"],
+                }),
+              },
+            ]}
+          />
+        </View>
       </View>
 
-      <Animated.View style={[styles.grid, { transform: [{ translateX: shakeAnim }] }]}>
-        {Array.from({ length: gridSize }).map((_, row) => (
-          <View key={row} style={styles.row}>
-            {Array.from({ length: gridSize }).map((_, col) => renderTile(row, col))}
-          </View>
-        ))}
+      {/* Game Grid */}
+      <Animated.View
+        style={[
+          styles.gameContainer,
+          {
+            transform: [{ translateX: shakeAnim }, { scale: pulseAnim }],
+          },
+        ]}
+      >
+        <View style={styles.grid}>
+          {Array.from({ length: gridSize }).map((_, row) => (
+            <View key={row} style={styles.row}>
+              {Array.from({ length: gridSize }).map((_, col) => renderTile(row, col))}
+            </View>
+          ))}
+        </View>
       </Animated.View>
 
-      <Text style={styles.message}>
-        {status === 'success'
-          ? '🏆 You completed all rounds!'
-          : status === 'fail'
-          ? '❌ Game Over'
-          : ''}
-      </Text>
+      {/* Status Messages */}
+      <View style={styles.statusContainer}>
+        {status === "success" && (
+          <View style={styles.successContainer}>
+            <Text style={styles.successTitle}>🏆 Amazing!</Text>
+            <Text style={styles.successText}>You completed all {maxRounds} rounds!</Text>
+          </View>
+        )}
 
-      {status === 'fail' && (
-        <TouchableOpacity style={styles.button} onPress={() => resetGame(gridSize)}>
-          <Text style={styles.buttonText}>🔁 Retry</Text>
-        </TouchableOpacity>
-      )}
+        {status === "fail" && (
+          <View style={styles.failContainer}>
+            <Text style={styles.failTitle}>💥 Game Over</Text>
+            <Text style={styles.failText}>You reached round {round}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => resetGame(gridSize)} activeOpacity={0.8}>
+              <Text style={styles.retryButtonText}>🔄 Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {status === "idle" && flashing && <Text style={styles.watchText}>👀 Watch the sequence...</Text>}
+
+        {status === "playing" && (
+          <Text style={styles.playText}>
+            ✨ Repeat the sequence! ({currentStep + 1}/{sequence.length})
+          </Text>
+        )}
+      </View>
+
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => setDifficulty(null)} activeOpacity={0.8}>
+        <Text style={styles.backButtonText}>← Back to Menu</Text>
+      </TouchableOpacity>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: "#0f0f23",
+    paddingTop: 50,
   },
-  title: {
-    color: '#fff',
-    fontSize: 24,
+  menuContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  titleContainer: {
+    alignItems: "center",
+    marginBottom: 50,
+  },
+  mainTitle: {
+    fontSize: 42,
+    fontWeight: "bold",
+    color: "#00d4ff",
+    textAlign: "center",
     marginBottom: 10,
   },
-  message: {
-    color: '#fff',
-    fontSize: 18,
-    marginVertical: 5,
+  subtitle: {
+    fontSize: 16,
+    color: "#94a3b8",
+    textAlign: "center",
   },
-  progressBarContainer: {
-    width: '100%',
-    height: 10,
-    backgroundColor: '#333',
-    borderRadius: 5,
-    marginVertical: 10,
+  difficultyContainer: {
+    width: "100%",
+    gap: 20,
+  },
+  difficultyButton: {
+    padding: 20,
+    borderRadius: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  difficultyEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  difficultyTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  difficultySubtitle: {
+    fontSize: 14,
+    color: "#fff",
+    opacity: 0.9,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  gameTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#00d4ff",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 20,
+  },
+  statItem: {
+    alignItems: "center",
+    backgroundColor: "#1e293b",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    minWidth: 80,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#94a3b8",
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  progressContainer: {
+    height: 8,
+    backgroundColor: "#1e293b",
+    borderRadius: 4,
+    overflow: "hidden",
   },
   progressBar: {
-    height: '100%',
-    backgroundColor: '#00f6ff',
-    borderRadius: 5,
+    height: "100%",
+    backgroundColor: "#00d4ff",
+    borderRadius: 4,
+  },
+  gameContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
   },
   grid: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 10,
+    backgroundColor: "#1e293b",
+    padding: 15,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   tile: {
-    margin: 5,
-    backgroundColor: '#444',
-    borderRadius: 10,
+    margin: 4,
+    backgroundColor: "#334155",
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   activeTile: {
-    backgroundColor: '#00f6ff',
+    backgroundColor: "#00d4ff",
+    shadowColor: "#00d4ff",
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 12,
   },
   tappedTile: {
-    backgroundColor: '#00f6ff99',
+    backgroundColor: "#0ea5e9",
+    opacity: 0.8,
   },
-  button: {
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#1e90ff',
+  glowEffect: {
+    position: "absolute",
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: "#00d4ff",
+    borderRadius: 14,
+    opacity: 0.3,
   },
-  buttonText: {
-    color: '#fff',
+  statusContainer: {
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+    minHeight: 120,
+    justifyContent: "center",
+  },
+  successContainer: {
+    alignItems: "center",
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#10b981",
+    marginBottom: 8,
+  },
+  successText: {
+    fontSize: 16,
+    color: "#94a3b8",
+    textAlign: "center",
+  },
+  failContainer: {
+    alignItems: "center",
+  },
+  failTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#ef4444",
+    marginBottom: 8,
+  },
+  failText: {
+    fontSize: 16,
+    color: "#94a3b8",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: "#3b82f6",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  watchText: {
+    fontSize: 18,
+    color: "#00d4ff",
+    textAlign: "center",
+  },
+  playText: {
+    fontSize: 18,
+    color: "#10b981",
+    textAlign: "center",
+  },
+  backButton: {
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 30,
+  },
+  backButtonText: {
+    color: "#94a3b8",
     fontSize: 16,
   },
-});
+})
