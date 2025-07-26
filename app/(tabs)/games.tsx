@@ -1,29 +1,142 @@
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Gamepad2, Brain, Calculator, Puzzle, Zap, Type, Circle as HelpCircle, Play } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
+const cardWidth = (width - 48) / 2; // 2 columns with proper spacing
 
 const games = [
-  { id: '1', name: 'Hangman', route: '/game/hangman' as const },
-  { id: '2', name: 'Memory Match', route: '/game/memory' as const },
-  { id: '3', name: 'Math Challenge', route: '/game/math-challenge' as const },
-  { id: '4', name: 'Logic Puzzle', route: '/game/logic-puzzle' as const },
-  { id: '5', name: 'Reaction Time', route: '/game/reaction-time' as const },
-  { id: '6', name: 'Word Builder', route: '/game/word-builder' as const },
-  { id: '7', name: 'Trivia', route: '/game/trivia' as const },
+  { 
+    id: '1', 
+    name: 'Hangman', 
+    route: '/game/hangman' as const,
+    description: 'Guess the word letter by letter',
+    icon: Type,
+    gradient: ['#667eea', '#764ba2'] as const,
+    difficulty: 'Easy'
+  },
+  { 
+    id: '2', 
+    name: 'Memory Match', 
+    route: '/game/memory' as const,
+    description: 'Match pairs and test your memory',
+    icon: Brain,
+    gradient: ['#f093fb', '#f5576c'] as const,
+    difficulty: 'Medium'
+  },
+  { 
+    id: '3', 
+    name: 'Math Challenge', 
+    route: '/game/math-challenge' as const,
+    description: 'Solve equations against the clock',
+    icon: Calculator,
+    gradient: ['#4facfe', '#00f2fe'] as const,
+    difficulty: 'Hard'
+  },
+  { 
+    id: '4', 
+    name: 'Logic Puzzle', 
+    route: '/game/logic-puzzle' as const,
+    description: 'Exercise your logical thinking',
+    icon: Puzzle,
+    gradient: ['#43e97b', '#38f9d7'] as const,
+    difficulty: 'Hard'
+  },
+  { 
+    id: '5', 
+    name: 'Reaction Time', 
+    route: '/game/reaction-time' as const,
+    description: 'Test your reflexes and speed',
+    icon: Zap,
+    gradient: ['#fa709a', '#fee140'] as const,
+    difficulty: 'Easy'
+  },
+  { 
+    id: '6', 
+    name: 'Word Builder', 
+    route: '/game/word-builder' as const,
+    description: 'Create words from given letters',
+    icon: Gamepad2,
+    gradient: ['#a8edea', '#fed6e3'] as const,
+    difficulty: 'Medium'
+  },
+  { 
+    id: '7', 
+    name: 'Trivia', 
+    route: '/game/trivia' as const,
+    description: 'Answer questions across topics',
+    icon: HelpCircle,
+    gradient: ['#d299c2', '#fef9d7'] as const,
+    difficulty: 'Medium'
+  },
 ];
+
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty) {
+    case 'Easy': return '#10b981';
+    case 'Medium': return '#f59e0b';
+    case 'Hard': return '#ef4444';
+    default: return '#6b7280';
+  }
+};
 
 export default function GamesScreen() {
   const router = useRouter();
 
+  const renderGameCard = ({ item }: { item: typeof games[0] }) => {
+    const IconComponent = item.icon;
+    
+    return (
+      <Pressable 
+        style={[styles.cardContainer, { width: cardWidth }]}
+        onPress={() => router.push(item.route)}
+        android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
+      >
+        <LinearGradient
+          colors={item.gradient}
+          style={styles.card}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.cardContent}>
+            <View style={styles.iconContainer}>
+              <IconComponent size={32} color="white" strokeWidth={2} />
+            </View>
+            
+            <Text style={styles.gameName}>{item.name}</Text>
+            <Text style={styles.gameDescription}>{item.description}</Text>
+            
+            <View style={styles.cardFooter}>
+              <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.difficulty) }]}>
+                <Text style={styles.difficultyText}>{item.difficulty}</Text>
+              </View>
+              
+              <View style={styles.playButton}>
+                <Play size={16} color="white" fill="white" />
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </Pressable>
+    );
+  };
+
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Brain Games</Text>
+        <Text style={styles.headerSubtitle}>Challenge yourself with fun puzzles</Text>
+      </View>
+      
       <FlatList
         data={games}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => router.push(item.route)}>
-            <Text style={styles.title}>{item.name}</Text>
-          </Pressable>
-        )}
+        renderItem={renderGameCard}
+        numColumns={2}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );
@@ -32,18 +145,100 @@ export default function GamesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8fafc',
+  },
+  header: {
+    padding: 24,
+    paddingTop: 60,
+    paddingBottom: 32,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  listContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
+  cardContainer: {
+    marginHorizontal: 8,
+    marginBottom: 16,
   },
   card: {
+    borderRadius: 20,
     padding: 20,
-    backgroundColor: '#e6e6fa',
-    borderRadius: 12,
-    marginVertical: 8,
+    minHeight: 180,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  title: {
+  cardContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  gameName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  gameDescription: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 18,
+    marginBottom: 16,
+    fontWeight: '500',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  difficultyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  difficultyText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'white',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  playButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  separator: {
+    height: 0,
   },
 });
