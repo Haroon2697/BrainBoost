@@ -16,6 +16,8 @@ import {
   View,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import MultiplayerResultScreen from './MultiplayerResultScreen';
+import PlayerSetupScreen from './PlayerSetupScreen';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -43,18 +45,33 @@ const CustomButton = ({ mode, onPress, style, children }: any) => {
   );
 };
 
+interface Player {
+  id: number;
+  name: string;
+  initials: string;
+  times: number[];
+  wins: number;
+}
+
 export default function ReactionTapGame() {
-  const [gameState, setGameState] = useState<'idle' | 'waiting' | 'ready' | 'result' | 'history' | 'multiplayer'>('idle');
+  const [gameState, setGameState] = useState<'idle' | 'waiting' | 'ready' | 'result' | 'history' | 'multiplayer' | 'setup' | 'multiplayer-result'>('idle');
   const [reactionTime, setReactionTime] = useState<number | null>(null);
   const [bestTime, setBestTime] = useState<number | null>(null);
   const [reactionHistory, setReactionHistory] = useState<number[]>([]);
   const [averageTime, setAverageTime] = useState<number>(0);
   const [focusMode, setFocusMode] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(1));
-  const [players, setPlayers] = useState([{ name: 'Player 1', score: null as number | null }, { name: 'Player 2', score: null as number | null }]);
-  const [currentPlayer, setCurrentPlayer] = useState(0);
-  const [isMultiplayerMode, setIsMultiplayerMode] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'hard' | 'ultra'>('easy');
+  const [isMultiplayerMode, setIsMultiplayerMode] = useState(false);
+
+  // Multiplayer state
+  const [multiplayerPlayers, setMultiplayerPlayers] = useState<Player[]>([]);
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [totalRounds, setTotalRounds] = useState(3);
+  const [roundResults, setRoundResults] = useState<number[]>([]);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isPlayerTransition, setIsPlayerTransition] = useState(false);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimestamp = useRef<number>(0);
@@ -63,6 +80,20 @@ export default function ReactionTapGame() {
     loadHighScore();
     loadHistory();
   }, []);
+
+  // Handle countdown for player transitions
+  useEffect(() => {
+    if (isPlayerTransition && countdown !== null) {
+      if (countdown > 0) {
+        const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        return () => clearTimeout(timer);
+      } else {
+        setIsPlayerTransition(false);
+        setCountdown(null);
+        startGame();
+      }
+    }
+  }, [countdown, isPlayerTransition]);
 
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const motivationalMessages = [
@@ -150,7 +181,59 @@ export default function ReactionTapGame() {
     }
   };
 
+  const startMultiplayerGame = (players: Player[], selectedDifficulty: 'easy' | 'hard' | 'ultra', rounds: number) => {
+    setMultiplayerPlayers(players.map(p => ({ ...p, times: [], wins: 0 })));
+    setDifficulty(selectedDifficulty);
+    setTotalRounds(rounds);
+    setCurrentPlayerIndex(0);
+    setCurrentRound(1);
+    setRoundResults([]);
+    setCountdown(null);
+    setIsPlayerTransition(false);
+    setIsMultiplayerMode(true);
+    setGameState('multiplayer');
+    startGame();
+  };
 
+  const handleMultiplayerRoundComplete = (reaction: number) => {
+    const updatedPlayers = [...multiplayerPlayers];
+    updatedPlayers[currentPlayerIndex].times.push(reaction);
+    setMultiplayerPlayers(updatedPlayers);
+
+    // Check if current player has completed all their rounds
+    if (currentRound === totalRounds) {
+      // Current player is done, check if all players are done
+      if (currentPlayerIndex === multiplayerPlayers.length - 1) {
+        // All players have completed all rounds, calculate final results
+        calculateFinalResults(updatedPlayers);
+      } else {
+        // Start countdown for next player
+        setIsPlayerTransition(true);
+        setCountdown(3);
+        setCurrentPlayerIndex(currentPlayerIndex + 1);
+        setCurrentRound(1);
+      }
+    } else {
+      // Continue with next round for current player
+      setCurrentRound(currentRound + 1);
+      startGame();
+    }
+  };
+
+  const calculateFinalResults = (players: Player[]) => {
+    // Calculate wins for each player based on their best times
+    const updatedPlayers = [...players];
+    
+    for (let round = 0; round < totalRounds; round++) {
+      const roundTimes = updatedPlayers.map(p => p.times[round]);
+      const fastestTime = Math.min(...roundTimes);
+      const roundWinnerIndex = roundTimes.indexOf(fastestTime);
+      updatedPlayers[roundWinnerIndex].wins++;
+    }
+    
+    setMultiplayerPlayers(updatedPlayers);
+    setGameState('multiplayer-result');
+  };
 
   const handleTap = () => {
     if (gameState === 'waiting') {
@@ -170,35 +253,18 @@ export default function ReactionTapGame() {
       const randomIndex = Math.floor(Math.random() * motivationalMessages.length);
       setFeedbackMessage(motivationalMessages[randomIndex]);
 
-      const updatedHistory = [...reactionHistory, reaction].slice(-20);
-      setReactionHistory(updatedHistory);
-      updateAverage(updatedHistory);
-      saveHistory(updatedHistory);
-      setGameState('result');
-
-      if (bestTime === null || reaction < bestTime) {
-        setBestTime(reaction);
-        saveHighScore(reaction);
-      }
-
-      // Check if we're in multiplayer mode
       if (isMultiplayerMode) {
-        const updatedPlayers = [...players];
-        updatedPlayers[currentPlayer].score = reaction;
-        setPlayers(updatedPlayers);
+        handleMultiplayerRoundComplete(reaction);
+      } else {
+        const updatedHistory = [...reactionHistory, reaction].slice(-20);
+        setReactionHistory(updatedHistory);
+        updateAverage(updatedHistory);
+        saveHistory(updatedHistory);
+        setGameState('result');
 
-        if (currentPlayer === players.length - 1) {
-          // Determine winner
-          const winner = updatedPlayers.reduce((prev, curr) =>
-            (prev.score !== null && curr.score !== null && prev.score < curr.score) ? prev : curr
-          );
-          Alert.alert(`${winner.name} wins!`, `With a time of ${winner.score} ms`);
-          setGameState('idle');
-          setIsMultiplayerMode(false);
-          setPlayers([{ name: 'Player 1', score: null }, { name: 'Player 2', score: null }]);
-        } else {
-          setCurrentPlayer(currentPlayer + 1);
-          startGame();
+        if (bestTime === null || reaction < bestTime) {
+          setBestTime(reaction);
+          saveHighScore(reaction);
         }
       }
     }
@@ -235,6 +301,27 @@ export default function ReactionTapGame() {
       </CustomButton>
     </View>
   );
+
+  // Render different screens based on game state
+  if (gameState === 'setup') {
+    return (
+      <PlayerSetupScreen
+        onStartGame={startMultiplayerGame}
+        onBack={() => setGameState('idle')}
+      />
+    );
+  }
+
+  if (gameState === 'multiplayer-result') {
+    return (
+      <MultiplayerResultScreen
+        players={multiplayerPlayers}
+        totalRounds={totalRounds}
+        onPlayAgain={() => setGameState('setup')}
+        onBackToMenu={() => setGameState('idle')}
+      />
+    );
+  }
 
   return (
     <TouchableOpacity activeOpacity={1} style={[styles.container, { backgroundColor: getBackgroundColor() }]} onPress={handleTap}>
@@ -279,18 +366,40 @@ export default function ReactionTapGame() {
           >
             {focusMode ? '👁️ Show Stats' : '🧠 Focus Mode'}
           </CustomButton>
-          <CustomButton mode="contained" onPress={() => {
-            setCurrentPlayer(0);
-            setIsMultiplayerMode(true);
-            setGameState('multiplayer');
-            startGame();
-          }} style={styles.button}>
+          <CustomButton mode="contained" onPress={() => setGameState('setup')} style={styles.button}>
             👥 Multiplayer Mode
           </CustomButton>
         </View>
       )}
 
-      {gameState === 'waiting' && <Text style={styles.text}>⏳ Wait for green...</Text>}
+      {gameState === 'waiting' && (
+        <View style={{ alignItems: 'center' }}>
+          <Text style={styles.text}>⏳ Wait for green...</Text>
+          {isMultiplayerMode && (
+            <View style={styles.multiplayerInfo}>
+              <Text style={styles.multiplayerText}>
+                {multiplayerPlayers[currentPlayerIndex]?.name}'s turn
+              </Text>
+              <Text style={styles.multiplayerText}>
+                Round {currentRound}/{totalRounds}
+              </Text>
+              <Text style={styles.multiplayerText}>
+                Player {currentPlayerIndex + 1} of {multiplayerPlayers.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {isPlayerTransition && countdown !== null && (
+        <View style={styles.countdownContainer}>
+          <Text style={styles.countdownText}>Next Player in...</Text>
+          <Text style={styles.countdownNumber}>{countdown}</Text>
+          <Text style={styles.nextPlayerText}>
+            {multiplayerPlayers[currentPlayerIndex]?.name}'s turn
+          </Text>
+        </View>
+      )}
 
       {gameState === 'ready' && (
         <Animated.Text style={[styles.text, { transform: [{ scale: scaleAnim }] }]}>⚡ TAP NOW!</Animated.Text>
@@ -415,5 +524,38 @@ const styles = StyleSheet.create({
   },
   ultraButton: {
     backgroundColor: '#FF4444',
+  },
+  multiplayerInfo: {
+    marginTop: 10,
+    backgroundColor: '#333',
+    padding: 10,
+    borderRadius: 10,
+  },
+  multiplayerText: {
+    color: 'white',
+    fontSize: 18,
+  },
+  countdownContainer: {
+    position: 'absolute',
+    top: '30%',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 20,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  countdownText: {
+    color: 'white',
+    fontSize: 24,
+    marginBottom: 10,
+  },
+  countdownNumber: {
+    color: '#FFD700',
+    fontSize: 60,
+    fontWeight: 'bold',
+  },
+  nextPlayerText: {
+    color: 'white',
+    fontSize: 20,
+    marginTop: 10,
   },
 });
