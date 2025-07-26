@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import { View, TouchableOpacity, StyleSheet, Dimensions, Text, Animated, StatusBar } from "react-native"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { useEffect, useRef, useState } from "react"
+import { Animated, Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 const getFlashTime = (round: number) => {
   return Math.max(600 - (round - 1) * 20, 200)
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 70,
   },
   titleContainer: {
     alignItems: "center",
@@ -447,7 +447,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
   },
   grid: {
     backgroundColor: "#1e293b",
