@@ -15,7 +15,7 @@ const games = [
     route: '/game/hangman' as const,
     description: 'Guess the word letter by letter',
     icon: Type,
-    gradient: ['#667eea', '#764ba2'] as const,
+    gradient: ['#a8edea', '#fed6e3'] as const,
     difficulty: 'Easy'
   },
   { 
@@ -24,7 +24,7 @@ const games = [
     route: '/game/memory' as const,
     description: 'Match pairs and test your memory',
     icon: Brain,
-    gradient: ['#f093fb', '#f5576c'] as const,
+    gradient: ['#b8f4ea', '#fec6d3'] as const,
     difficulty: 'Medium'
   },
   { 
@@ -33,7 +33,7 @@ const games = [
     route: '/game/math-challenge' as const,
     description: 'Solve equations against the clock',
     icon: Calculator,
-    gradient: ['#4facfe', '#00f2fe'] as const,
+    gradient: ['#98e4ea', '#fee6e3'] as const,
     difficulty: 'Hard'
   },
   { 
@@ -42,7 +42,7 @@ const games = [
     route: '/game/logic-puzzle' as const,
     description: 'Exercise your logical thinking',
     icon: Puzzle,
-    gradient: ['#43e97b', '#38f9d7'] as const,
+    gradient: ['#c8f0ea', '#fec0d3'] as const,
     difficulty: 'Hard'
   },
   { 
@@ -51,7 +51,7 @@ const games = [
     route: '/game/reaction-time' as const,
     description: 'Test your reflexes and speed',
     icon: Zap,
-    gradient: ['#fa709a', '#fee140'] as const,
+    gradient: ['#a0e8ea', '#fecce3'] as const,
     difficulty: 'Easy'
   },
   { 
@@ -69,7 +69,7 @@ const games = [
     route: '/game/trivia' as const,
     description: 'Answer questions across topics',
     icon: HelpCircle,
-    gradient: ['#d299c2', '#fef9d7'] as const,
+    gradient: ['#b0ecea', '#fecad3'] as const,
     difficulty: 'Medium'
   },
 ];
@@ -103,7 +103,7 @@ export default function GamesScreen() {
         >
           <View style={styles.cardContent}>
             <View style={styles.iconContainer}>
-              <IconComponent size={32} color="white" strokeWidth={2} />
+              <IconComponent size={32} color="black" strokeWidth={2} />
             </View>
             
             <Text style={styles.gameName}>{item.name}</Text>
@@ -115,7 +115,7 @@ export default function GamesScreen() {
               </View>
               
               <View style={styles.playButton}>
-                <Play size={16} color="white" fill="white" />
+                <Play size={16} color="black" fill="black" />
               </View>
             </View>
           </View>
@@ -125,7 +125,7 @@ export default function GamesScreen() {
   };
 
   return (
-    <LinearGradient colors={['#4c63d2', '#6b46c1']} style={styles.container}>
+    <LinearGradient colors={['#1a1a1a', '#000000']} style={styles.container}>
       <FlatList
         data={games}
         keyExtractor={(item) => item.id}
@@ -189,7 +189,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: 'white',
+  },
+  cardOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
   },
   cardContent: {
     flex: 1,
@@ -199,21 +209,23 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'black',
   },
   gameName: {
     fontSize: 18,
     fontWeight: '700',
-    color: 'white',
+    color: 'black',
     marginBottom: 4,
     letterSpacing: -0.3,
   },
   gameDescription: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'black',
     lineHeight: 18,
     marginBottom: 16,
     fontWeight: '500',
@@ -240,9 +252,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'black',
   },
   separator: {
     height: 0,
