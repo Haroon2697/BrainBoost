@@ -54,6 +54,7 @@ export default function ReactionTapGame() {
   const [players, setPlayers] = useState([{ name: 'Player 1', score: null as number | null }, { name: 'Player 2', score: null as number | null }]);
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [isMultiplayerMode, setIsMultiplayerMode] = useState(false);
+  const [difficulty, setDifficulty] = useState<'easy' | 'hard' | 'ultra'>('easy');
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimestamp = useRef<number>(0);
@@ -63,7 +64,28 @@ export default function ReactionTapGame() {
     loadHistory();
   }, []);
 
-  const getRandomDelay = () => Math.floor(Math.random() * 4000) + 1000;
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const motivationalMessages = [
+    "⚡ Blazing fast!",
+    "🔥 You're on fire!",
+    "👀 Eyes like a hawk!",
+    "💪 Strong reaction!",
+    "🚀 Lightning reflexes!",
+    "🎯 Nailed it!",
+  ];
+
+  const getRandomDelay = () => {
+    switch (difficulty) {
+      case 'easy':
+        return Math.floor(Math.random() * 3000) + 2000; // 2–5s
+      case 'hard':
+        return Math.floor(Math.random() * 2000) + 500;  // 0.5–2.5s
+      case 'ultra':
+        return Math.floor(Math.random() * 2000) + 1000; // 1–3s + fake flash
+      default:
+        return 3000;
+    }
+  };
 
   const loadHighScore = async () => {
     const storedBest = await AsyncStorage.getItem('bestReactionTime');
@@ -93,22 +115,42 @@ export default function ReactionTapGame() {
     setAverageTime(Math.round(sum / times.length));
   };
 
+  const startRealSignal = () => {
+    startTimestamp.current = Date.now();
+    setGameState('ready');
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.4, duration: 250, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1.0, duration: 250, useNativeDriver: true }),
+      ])
+    ).start();
+  };
+
   const startGame = () => {
     setReactionTime(null);
     setGameState('waiting');
 
     const delay = getRandomDelay();
-    timeoutRef.current = setTimeout(() => {
-      startTimestamp.current = Date.now();
-      setGameState('ready');
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, { toValue: 1.4, duration: 250, useNativeDriver: true }),
-          Animated.timing(scaleAnim, { toValue: 1.0, duration: 250, useNativeDriver: true }),
-        ])
-      ).start();
-    }, delay);
+    
+    if (difficulty === 'ultra') {
+      const fakeFlashCount = Math.floor(Math.random() * 2) + 1; // 1 or 2 fake flashes
+
+      let flashes = 0;
+      const fakeFlashInterval = setInterval(() => {
+        if (flashes < fakeFlashCount) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          flashes++;
+        } else {
+          clearInterval(fakeFlashInterval);
+          timeoutRef.current = setTimeout(startRealSignal, delay);
+        }
+      }, 500);
+    } else {
+      timeoutRef.current = setTimeout(startRealSignal, delay);
+    }
   };
+
+
 
   const handleTap = () => {
     if (gameState === 'waiting') {
@@ -124,6 +166,9 @@ export default function ReactionTapGame() {
       const reaction = Date.now() - startTimestamp.current;
       Haptics.selectionAsync();
       setReactionTime(reaction);
+
+      const randomIndex = Math.floor(Math.random() * motivationalMessages.length);
+      setFeedbackMessage(motivationalMessages[randomIndex]);
 
       const updatedHistory = [...reactionHistory, reaction].slice(-20);
       setReactionHistory(updatedHistory);
@@ -195,6 +240,32 @@ export default function ReactionTapGame() {
     <TouchableOpacity activeOpacity={1} style={[styles.container, { backgroundColor: getBackgroundColor() }]} onPress={handleTap}>
       {gameState === 'idle' && (
         <View style={styles.menu}>
+          <View style={styles.difficultyContainer}>
+            <Text style={styles.text}>Difficulty</Text>
+            <View style={styles.difficultyButtons}>
+              <CustomButton 
+                mode={difficulty === 'easy' ? 'contained' : 'outlined'} 
+                onPress={() => setDifficulty('easy')} 
+                style={[styles.difficultyButton, difficulty === 'easy' && styles.easyButton]}
+              >
+                🟢 Easy
+              </CustomButton>
+              <CustomButton 
+                mode={difficulty === 'hard' ? 'contained' : 'outlined'} 
+                onPress={() => setDifficulty('hard')} 
+                style={[styles.difficultyButton, difficulty === 'hard' && styles.hardButton]}
+              >
+                🔶 Hard
+              </CustomButton>
+              <CustomButton 
+                mode={difficulty === 'ultra' ? 'contained' : 'outlined'} 
+                onPress={() => setDifficulty('ultra')} 
+                style={[styles.difficultyButton, difficulty === 'ultra' && styles.ultraButton]}
+              >
+                🔴 Ultra
+              </CustomButton>
+            </View>
+          </View>
           <CustomButton mode="contained" onPress={startGame} style={styles.button}>
             🎯 Start Reaction Test
           </CustomButton>
@@ -226,15 +297,16 @@ export default function ReactionTapGame() {
       )}
 
       {gameState === 'result' && (
-        <View>
-          <Text style={styles.text}>🎉 Your Reaction Time: {reactionTime} ms</Text>
-          {!focusMode && bestTime && <Text style={styles.text}>🏆 Best Time: {bestTime} ms</Text>}
+        <View style={{ alignItems: 'center' }}>
+          {feedbackMessage !== '' && <Text style={styles.feedback}>{feedbackMessage}</Text>}
+          <Text style={styles.scoreText}>🎉 Your Reaction Time: {reactionTime} ms</Text>
+          {!focusMode && bestTime && <Text style={styles.scoreText}>🏆 Best Time: {bestTime} ms</Text>}
           {!focusMode && reactionHistory.length > 0 && (
-            <Text style={styles.text}>📊 Average Time: {averageTime} ms</Text>
+            <Text style={styles.scoreText}>📊 Average Time: {averageTime} ms</Text>
           )}
-          <CustomButton mode="contained" onPress={startGame} style={styles.button}>
-            🔁 Try Again
-          </CustomButton>
+          <View style={{ alignItems: 'center', width: '100%', marginTop: 24 }}>
+            <CustomButton mode="contained" onPress={startGame} style={[styles.button, { alignSelf: 'center' }]}>🔁 Try Again</CustomButton>
+          </View>
         </View>
       )}
 
@@ -300,5 +372,48 @@ const styles = StyleSheet.create({
   },
   tonalButtonText: {
     color: 'white',
+  },
+  scoreText: {
+    color: 'white',
+    fontSize: 22,
+    textAlign: 'center',
+    marginBottom: 16,
+    fontWeight: '600',
+  },
+
+  feedback: {
+    color: '#FFD700',
+    fontSize: 22,
+    textAlign: 'center',
+    marginVertical: 10,
+    fontWeight: 'bold',
+  },
+   
+  difficultyContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  difficultyButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 10,
+  },
+  difficultyButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '30%',
+  },
+  easyButton: {
+    backgroundColor: '#4CAF50',
+  },
+  hardButton: {
+    backgroundColor: '#FFD700',
+  },
+  ultraButton: {
+    backgroundColor: '#FF4444',
   },
 });
