@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Brain, Calculator, Gamepad2, Circle as HelpCircle, Play, Puzzle, Type, Zap } from 'lucide-react-native';
+import { Brain, Calculator, Gamepad2, Circle as HelpCircle, Play, Puzzle, Type, X, Zap } from 'lucide-react-native';
 import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -70,6 +70,15 @@ const games = [
     description: 'Answer questions across topics',
     icon: HelpCircle,
     gradient: ['#b0ecea', '#fecad3'] as const,
+    difficulty: 'Medium'
+  },
+  { 
+    id: '8', 
+    name: 'Odd One Out', 
+    route: '/game/odd-one-out' as const,
+    description: 'Find the item that doesn\'t belong',
+    icon: X,
+    gradient: ['#a8edea', '#fed6e3'] as const,
     difficulty: 'Medium'
   },
 ];
