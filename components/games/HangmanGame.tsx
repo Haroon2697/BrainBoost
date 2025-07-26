@@ -3,7 +3,7 @@ import { FredokaOne_400Regular } from '@expo-google-fonts/fredoka-one';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Clock, Lightbulb, RotateCcw, Trophy } from 'lucide-react-native';
+import { Clock, Lightbulb, RotateCcw, Trophy } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -22,6 +22,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchWord } from '../../utils/fetchWords';
 
 const { width, height } = Dimensions.get('window');
@@ -219,162 +220,145 @@ export default function HangmanGame() {
   }
 
   return (
-    <LinearGradient
-      colors={['#667eea', '#764ba2']}
-      style={styles.container}
-    >
-      <StatusBar barStyle="light-content" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color="white" />
-        </TouchableOpacity>
+    <LinearGradient colors={['#667eea', '#764ba2']} style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <StatusBar barStyle="light-content" />
         
-        <Text style={[styles.title, { fontFamily: 'Creepster_400Regular' }]}>
-          HANGMAN
-        </Text>
-        
-        <View style={styles.headerRight} />
-      </View>
-
-      {/* Stats Bar */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Trophy size={20} color="#ffd700" />
-          <Text style={styles.statText}>{wins}</Text>
+        {/* Stats Bar */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Trophy size={20} color="#ffd700" />
+            <Text style={styles.statText}>{wins}</Text>
+          </View>
+          
+          <View style={styles.statItem}>
+            <Clock size={20} color="#ffffff" />
+            <Text style={styles.statText}>{formatTime(timer)}</Text>
+          </View>
+          
+          <View style={styles.statItem}>
+            <Text style={styles.statEmoji}>💀</Text>
+            <Text style={styles.statText}>{losses}</Text>
+          </View>
         </View>
-        
-        <View style={styles.statItem}>
-          <Clock size={20} color="#ffffff" />
-          <Text style={styles.statText}>{formatTime(timer)}</Text>
+
+        {/* Difficulty Selector */}
+        <View style={styles.difficultyContainer}>
+          <Text style={styles.difficultyLabel}>Difficulty</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={difficulty}
+              onValueChange={(itemValue) => setDifficulty(itemValue as Difficulty)}
+              style={styles.picker}
+              dropdownIconColor="#ffffff"
+              mode="dropdown"
+            >
+              <Picker.Item label="Easy" value="easy" color="white" />
+              <Picker.Item label="Medium" value="medium" color="white" />
+              <Picker.Item label="Hard" value="hard" color="white" />
+            </Picker>
+          </View>
         </View>
-        
-        <View style={styles.statItem}>
-          <Text style={styles.statEmoji}>💀</Text>
-          <Text style={styles.statText}>{losses}</Text>
-        </View>
-      </View>
 
-      {/* Difficulty Selector */}
-      <View style={styles.difficultyContainer}>
-        <Text style={styles.difficultyLabel}>Difficulty</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={difficulty}
-            onValueChange={(itemValue) => setDifficulty(itemValue as Difficulty)}
-            style={styles.picker}
-            dropdownIconColor="#ffffff"
-            mode="dropdown"
-          >
-            <Picker.Item label="Easy" value="easy" color="white" />
-            <Picker.Item label="Medium" value="medium" color="white" />
-            <Picker.Item label="Hard" value="hard" color="white" />
-          </Picker>
-        </View>
-      </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="white" />
+            <Text style={styles.loadingText}>Loading new word...</Text>
+          </View>
+        ) : (
+          <View style={styles.gameContainer}>
+            {/* Hangman Display */}
+            <Animated.View style={[styles.hangmanContainer, hangmanAnimatedStyle]}>
+              <Text style={styles.hangman}>{hangmanStages[wrongGuesses]}</Text>
+              <Text style={styles.guessCounter}>
+                {wrongGuesses} / {MAX_GUESSES} wrong
+              </Text>
+            </Animated.View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="white" />
-          <Text style={styles.loadingText}>Loading new word...</Text>
-        </View>
-      ) : (
-        <View style={styles.gameContainer}>
-          {/* Hangman Display */}
-          <Animated.View style={[styles.hangmanContainer, hangmanAnimatedStyle]}>
-            <Text style={styles.hangman}>{hangmanStages[wrongGuesses]}</Text>
-            <Text style={styles.guessCounter}>
-              {wrongGuesses} / {MAX_GUESSES} wrong
-            </Text>
-          </Animated.View>
+            {/* Word Display */}
+            <Animated.View style={[styles.wordContainer, wordAnimatedStyle]}>
+              {displayWord}
+            </Animated.View>
 
-          {/* Word Display */}
-          <Animated.View style={[styles.wordContainer, wordAnimatedStyle]}>
-            {displayWord}
-          </Animated.View>
-
-          {/* Keyboard */}
-          <Animated.View style={[styles.keyboardContainer, keyboardAnimatedStyle]}>
-            <View style={styles.keyboard}>
-              {ALPHABET.map((letter) => {
-                const isGuessed = guessedLetters.includes(letter);
-                const isCorrect = word.includes(letter);
-                return (
-                  <TouchableOpacity
-                    key={letter}
-                    onPress={() => guessLetter(letter)}
-                    disabled={isGuessed || gameOver}
-                    style={[
-                      styles.key,
-                      isGuessed && {
-                        backgroundColor: isCorrect ? '#22c55e' : '#ef4444',
-                        transform: [{ scale: 0.9 }],
-                      },
-                    ]}
-                  >
-                    <Text style={[
-                      styles.keyText,
-                      isGuessed && { color: 'white' }
-                    ]}>
-                      {letter}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </Animated.View>
-
-          {/* Hint Button */}
-          <TouchableOpacity
-            style={[
-              styles.hintButton,
-              usedHint && styles.hintButtonDisabled
-            ]}
-            onPress={useHint}
-            disabled={usedHint || gameOver}
-          >
-            <Lightbulb size={20} color={usedHint ? '#94a3b8' : '#fbbf24'} />
-            <Text style={[
-              styles.hintText,
-              usedHint && styles.hintTextDisabled
-            ]}>
-              {usedHint ? 'Hint Used' : 'Use Hint'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Game Over Overlay */}
-          {gameOver && (
-            <Animated.View style={[styles.gameOverContainer, gameOverAnimatedStyle]}>
-              <View style={styles.gameOverCard}>
-                <Text style={styles.gameOverEmoji}>
-                  {isWin ? '🎉' : '💀'}
-                </Text>
-                <Text style={styles.gameOverTitle}>
-                  {isWin ? 'Victory!' : 'Game Over'}
-                </Text>
-                <Text style={styles.gameOverSubtitle}>
-                  {isWin 
-                    ? `You solved it in ${formatTime(timer)}!` 
-                    : `The word was: ${word}`
-                  }
-                </Text>
-                
-                <TouchableOpacity
-                  style={styles.playAgainButton}
-                  onPress={loadWord}
-                >
-                  <RotateCcw size={20} color="white" />
-                  <Text style={styles.playAgainText}>Play Again</Text>
-                </TouchableOpacity>
+            {/* Keyboard */}
+            <Animated.View style={[styles.keyboardContainer, keyboardAnimatedStyle]}>
+              <View style={styles.keyboard}>
+                {ALPHABET.map((letter) => {
+                  const isGuessed = guessedLetters.includes(letter);
+                  const isCorrect = word.includes(letter);
+                  return (
+                    <TouchableOpacity
+                      key={letter}
+                      onPress={() => guessLetter(letter)}
+                      disabled={isGuessed || gameOver}
+                      style={[
+                        styles.key,
+                        isGuessed && {
+                          backgroundColor: isCorrect ? '#22c55e' : '#ef4444',
+                          transform: [{ scale: 0.9 }],
+                        },
+                      ]}
+                    >
+                      <Text style={[
+                        styles.keyText,
+                        isGuessed && { color: 'white' }
+                      ]}>
+                        {letter}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </Animated.View>
-          )}
-        </View>
-      )}
+
+            {/* Hint Button */}
+            <TouchableOpacity
+              style={[
+                styles.hintButton,
+                usedHint && styles.hintButtonDisabled
+              ]}
+              onPress={useHint}
+              disabled={usedHint || gameOver}
+            >
+              <Lightbulb size={20} color={usedHint ? '#94a3b8' : '#fbbf24'} />
+              <Text style={[
+                styles.hintText,
+                usedHint && styles.hintTextDisabled
+              ]}>
+                {usedHint ? 'Hint Used' : 'Use Hint'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Game Over Overlay */}
+            {gameOver && (
+              <Animated.View style={[styles.gameOverContainer, gameOverAnimatedStyle]}>
+                <View style={styles.gameOverCard}>
+                  <Text style={styles.gameOverEmoji}>
+                    {isWin ? '🎉' : '💀'}
+                  </Text>
+                  <Text style={styles.gameOverTitle}>
+                    {isWin ? 'Victory!' : 'Game Over'}
+                  </Text>
+                  <Text style={styles.gameOverSubtitle}>
+                    {isWin 
+                      ? `You solved it in ${formatTime(timer)}!` 
+                      : `The word was: ${word}`
+                    }
+                  </Text>
+                  
+                  <TouchableOpacity
+                    style={styles.playAgainButton}
+                    onPress={loadWord}
+                  >
+                    <RotateCcw size={20} color="white" />
+                    <Text style={styles.playAgainText}>Play Again</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            )}
+          </View>
+        )}
+      </SafeAreaView>
     </LinearGradient>
   );
 }
@@ -419,6 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 40,
     paddingVertical: 15,
+    paddingTop: 25,
     backgroundColor: 'rgba(255,255,255,0.1)',
     marginHorizontal: 20,
     borderRadius: 15,
