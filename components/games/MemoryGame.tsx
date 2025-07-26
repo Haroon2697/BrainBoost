@@ -27,6 +27,7 @@ export default function MemoryGame() {
   const shakeAnim = useRef(new Animated.Value(0)).current
   const pulseAnim = useRef(new Animated.Value(1)).current
   const progressAnim = useRef(new Animated.Value(0)).current
+  const [tileAnimations, setTileAnimations] = useState<{ [key: string]: Animated.Value }>({})
 
   const maxRounds = difficulty === "medium" ? 40 : difficulty === "hard" ? 50 : 20
   const screenWidth = Dimensions.get("window").width
@@ -55,6 +56,14 @@ export default function MemoryGame() {
     shakeAnim.setValue(0)
     pulseAnim.setValue(1)
     progressAnim.setValue(0)
+    // Initialize tile animations for the new grid size
+    const newTileAnimations: { [key: string]: Animated.Value } = {}
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size; col++) {
+        newTileAnimations[keyFromCoord(row, col)] = new Animated.Value(1)
+      }
+    }
+    setTileAnimations(newTileAnimations)
 
     const savedScore = await AsyncStorage.getItem("memoryGameHighScore")
     if (savedScore) setHighScore(Number(savedScore))
@@ -78,6 +87,26 @@ export default function MemoryGame() {
     setStatus("playing")
   }
 
+  const animateTile = (key: string) => {
+    if (difficulty === 'easy') return // Keep full grid animation for easy
+    
+    const tileAnim = tileAnimations[key]
+    if (tileAnim) {
+      Animated.sequence([
+        Animated.timing(tileAnim, {
+          toValue: 1.1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tileAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start()
+    }
+  }
+
   const handleTilePress = async (row: number, col: number) => {
     if (flashing || status !== "playing") return
 
@@ -85,19 +114,23 @@ export default function MemoryGame() {
     const correct = sequence[currentStep]
 
     if (correct.row === row && correct.col === col) {
-      // Success pulse animation (subtle)
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start()
+      // Success animation - individual tile for medium/hard, full grid for easy
+      if (difficulty === 'easy') {
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ]).start()
+      } else {
+        animateTile(key)
+      }
 
       const newSelected = [...selectedTiles, key]
       setSelectedTiles(newSelected)
@@ -179,22 +212,51 @@ if (sequence.length > highScore) {
     const key = keyFromCoord(row, col)
     const isActive = activeTile === key
     const wasTapped = selectedTiles.includes(key)
+    const tileAnim = tileAnimations[key]
 
+    if (difficulty === 'easy') {
+      return (
+        <TouchableOpacity
+          key={key}
+          onPress={() => handleTilePress(row, col)}
+          style={[
+            styles.tile,
+            { width: tileSize, height: tileSize },
+            isActive && styles.activeTile,
+            wasTapped && styles.tappedTile,
+          ]}
+          disabled={flashing}
+          activeOpacity={0.8}
+        >
+          {isActive && <View style={styles.glowEffect} />}
+        </TouchableOpacity>
+      )
+    }
+
+    // For medium and hard difficulties, use Animated.View wrapper
     return (
-      <TouchableOpacity
+      <Animated.View
         key={key}
-        onPress={() => handleTilePress(row, col)}
         style={[
-          styles.tile,
-          { width: tileSize, height: tileSize },
-          isActive && styles.activeTile,
-          wasTapped && styles.tappedTile,
+          tileAnim && {
+            transform: [{ scale: tileAnim }]
+          }
         ]}
-        disabled={flashing}
-        activeOpacity={0.8}
       >
-        {isActive && <View style={styles.glowEffect} />}
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => handleTilePress(row, col)}
+          style={[
+            styles.tile,
+            { width: tileSize, height: tileSize },
+            isActive && styles.activeTile,
+            wasTapped && styles.tappedTile,
+          ]}
+          disabled={flashing}
+          activeOpacity={0.8}
+        >
+          {isActive && <View style={styles.glowEffect} />}
+        </TouchableOpacity>
+      </Animated.View>
     )
   }
 
@@ -245,11 +307,18 @@ if (sequence.length > highScore) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f0f23" />
+      <StatusBar barStyle="light-content" backgroundColor="#121212" />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.gameTitle}>Memory Tiles</Text>
+        {/* Header with Back Button */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.backButton} onPress={() => setDifficulty(null)} activeOpacity={0.8}>
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.gameTitle}>Memory Tiles</Text>
+          <View style={styles.placeholder} />
+        </View>
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
@@ -333,10 +402,6 @@ if (sequence.length > highScore) {
         )}
       </View>
 
-      {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => setDifficulty(null)} activeOpacity={0.8}>
-        <Text style={styles.backButtonText}>← Back to Menu</Text>
-      </TouchableOpacity>
     </View>
   )
 }
@@ -344,7 +409,7 @@ if (sequence.length > highScore) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f0f23",
+    backgroundColor: "#121212",
     paddingTop: 50,
   },
   menuContainer: {
@@ -360,13 +425,13 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 42,
     fontWeight: "bold",
-    color: "#00d4ff",
+    color: "#4CAF50",
     textAlign: "center",
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: "#94a3b8",
+    color: "#ccc",
     textAlign: "center",
   },
   difficultyContainer: {
@@ -402,12 +467,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#444",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1a1a1a",
+  },
+  backArrow: {
+    fontSize: 24,
+    color: "#888",
+  },
+  placeholder: {
+    width: 40,
+  },
   gameTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#00d4ff",
+    color: "#4CAF50",
     textAlign: "center",
-    marginBottom: 20,
+    flex: 1,
   },
   statsRow: {
     flexDirection: "row",
@@ -416,7 +504,7 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: "center",
-    backgroundColor: "#1e293b",
+    backgroundColor: "#1a1a1a",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -424,7 +512,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: "#94a3b8",
+    color: "#888",
     marginBottom: 4,
   },
   statValue: {
@@ -434,13 +522,13 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     height: 8,
-    backgroundColor: "#1e293b",
+    backgroundColor: "#1a1a1a",
     borderRadius: 4,
     overflow: "hidden",
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#00d4ff",
+    backgroundColor: "#4CAF50",
     borderRadius: 4,
   },
   gameContainer: {
@@ -449,7 +537,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   grid: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#1a1a1a",
     padding: 15,
     borderRadius: 20,
     shadowColor: "#000",
@@ -463,7 +551,7 @@ const styles = StyleSheet.create({
   },
   tile: {
     margin: 4,
-    backgroundColor: "#334155",
+    backgroundColor: "#333",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
@@ -474,14 +562,14 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   activeTile: {
-    backgroundColor: "#00d4ff",
-    shadowColor: "#00d4ff",
+    backgroundColor: "#4CAF50",
+    shadowColor: "#4CAF50",
     shadowOpacity: 0.6,
     shadowRadius: 12,
     elevation: 12,
   },
   tappedTile: {
-    backgroundColor: "#0ea5e9",
+    backgroundColor: "#45a049",
     opacity: 0.8,
   },
   glowEffect: {
@@ -490,7 +578,7 @@ const styles = StyleSheet.create({
     left: -2,
     right: -2,
     bottom: -2,
-    backgroundColor: "#00d4ff",
+    backgroundColor: "#4CAF50",
     borderRadius: 14,
     opacity: 0.3,
   },
@@ -512,7 +600,7 @@ const styles = StyleSheet.create({
   },
   successText: {
     fontSize: 16,
-    color: "#94a3b8",
+    color: "#ccc",
     textAlign: "center",
   },
   failContainer: {
@@ -526,12 +614,12 @@ const styles = StyleSheet.create({
   },
   failText: {
     fontSize: 16,
-    color: "#94a3b8",
+    color: "#ccc",
     textAlign: "center",
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: "#4CAF50",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -543,22 +631,12 @@ const styles = StyleSheet.create({
   },
   watchText: {
     fontSize: 18,
-    color: "#00d4ff",
+    color: "#4CAF50",
     textAlign: "center",
   },
   playText: {
     fontSize: 18,
     color: "#10b981",
     textAlign: "center",
-  },
-  backButton: {
-    alignSelf: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginBottom: 30,
-  },
-  backButtonText: {
-    color: "#94a3b8",
-    fontSize: 16,
   },
 })
