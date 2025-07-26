@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, FlatList, Pressable, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gamepad2, Brain, Calculator, Puzzle, Zap, Type, Circle as HelpCircle, Play } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Brain, Calculator, Gamepad2, Circle as HelpCircle, Play, Puzzle, Type, Zap } from 'lucide-react-native';
+import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 48) / 2; // 2 columns with proper spacing
+const screenPadding = 16;
+const cardSpacing = 12;
+const cardWidth = (width - (screenPadding * 2) - cardSpacing) / 2;
 
 const games = [
   { 
@@ -89,7 +91,7 @@ export default function GamesScreen() {
     
     return (
       <Pressable 
-        style={[styles.cardContainer, { width: cardWidth }]}
+        style={styles.cardContainer}
         onPress={() => router.push(item.route)}
         android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
       >
@@ -123,12 +125,7 @@ export default function GamesScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Brain Games</Text>
-        <Text style={styles.headerSubtitle}>Challenge yourself with fun puzzles</Text>
-      </View>
-      
+    <LinearGradient colors={['#4c63d2', '#6b46c1']} style={styles.container}>
       <FlatList
         data={games}
         keyExtractor={(item) => item.id}
@@ -136,32 +133,40 @@ export default function GamesScreen() {
         numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        columnWrapperStyle={styles.row}
+        ListHeaderComponent={() => (
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Brain Games</Text>
+            <Text style={styles.headerSubtitle}>Challenge yourself with fun puzzles</Text>
+          </View>
+        )}
       />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 80,
     paddingBottom: 32,
   },
   headerTitle: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#1e293b',
+    color: 'white',
     marginBottom: 4,
     letterSpacing: -0.5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: 'rgba(255,255,255,0.9)',
     fontWeight: '500',
   },
   listContainer: {
@@ -169,7 +174,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   cardContainer: {
-    marginHorizontal: 8,
+    width: cardWidth,
     marginBottom: 16,
   },
   card: {
@@ -184,6 +189,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   cardContent: {
     flex: 1,
@@ -226,7 +232,7 @@ const styles = StyleSheet.create({
   difficultyText: {
     fontSize: 11,
     fontWeight: '700',
-    color: 'white',
+    color: '#333',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -240,5 +246,8 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 0,
+  },
+  row: {
+    justifyContent: 'space-between',
   },
 });
