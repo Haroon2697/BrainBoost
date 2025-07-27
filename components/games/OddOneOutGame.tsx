@@ -1,324 +1,960 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { Brain, Clock, RotateCcw, Trophy } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { router } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    Dimensions,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Dimensions,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// Sample data for Odd One Out game
-const sampleData = [
-  {
-    id: 1,
-    question: "Which one doesn't belong?",
-    options: [
-      { id: 1, text: "Apple", category: "fruit", isCorrect: false },
-      { id: 2, text: "Banana", category: "fruit", isCorrect: false },
-      { id: 3, text: "Carrot", category: "vegetable", isCorrect: true },
-      { id: 4, text: "Orange", category: "fruit", isCorrect: false },
-    ],
-    explanation: "Carrot is a vegetable, while the others are fruits."
-  },
-  {
-    id: 2,
-    question: "Find the odd one out:",
-    options: [
-      { id: 1, text: "Dog", category: "domestic", isCorrect: false },
-      { id: 2, text: "Cat", category: "domestic", isCorrect: false },
-      { id: 3, text: "Lion", category: "wild", isCorrect: true },
-      { id: 4, text: "Horse", category: "domestic", isCorrect: false },
-    ],
-    explanation: "Lion is a wild animal, while the others are domestic animals."
-  },
-  {
-    id: 3,
-    question: "Which is different?",
-    options: [
-      { id: 1, text: "Red", category: "color", isCorrect: false },
-      { id: 2, text: "Blue", category: "color", isCorrect: false },
-      { id: 3, text: "Happy", category: "emotion", isCorrect: true },
-      { id: 4, text: "Green", category: "color", isCorrect: false },
-    ],
-    explanation: "Happy is an emotion, while the others are colors."
-  },
-  {
-    id: 4,
-    question: "Pick the odd one:",
-    options: [
-      { id: 1, text: "Earth", category: "planet", isCorrect: false },
-      { id: 2, text: "Mars", category: "planet", isCorrect: false },
-      { id: 3, text: "Moon", category: "satellite", isCorrect: true },
-      { id: 4, text: "Venus", category: "planet", isCorrect: false },
-    ],
-    explanation: "Moon is a satellite, while the others are planets."
-  },
-  {
-    id: 5,
-    question: "Which doesn't fit?",
-    options: [
-      { id: 1, text: "Piano", category: "instrument", isCorrect: false },
-      { id: 2, text: "Guitar", category: "instrument", isCorrect: false },
-      { id: 3, text: "Microphone", category: "equipment", isCorrect: true },
-      { id: 4, text: "Violin", category: "instrument", isCorrect: false },
-    ],
-    explanation: "Microphone is audio equipment, while the others are musical instruments."
-  },
-  {
-    id: 6,
-    question: "Find the different one:",
-    options: [
-      { id: 1, text: "Winter", category: "season", isCorrect: false },
-      { id: 2, text: "Summer", category: "season", isCorrect: false },
-      { id: 3, text: "Rain", category: "weather", isCorrect: true },
-      { id: 4, text: "Spring", category: "season", isCorrect: false },
-    ],
-    explanation: "Rain is a weather condition, while the others are seasons."
-  },
-  {
-    id: 7,
-    question: "Which is the odd one?",
-    options: [
-      { id: 1, text: "Book", category: "reading", isCorrect: false },
-      { id: 2, text: "Magazine", category: "reading", isCorrect: false },
-      { id: 3, text: "Television", category: "media", isCorrect: true },
-      { id: 4, text: "Newspaper", category: "reading", isCorrect: false },
-    ],
-    explanation: "Television is electronic media, while the others are reading materials."
-  },
-  {
-    id: 8,
-    question: "Pick the different item:",
-    options: [
-      { id: 1, text: "Coffee", category: "beverage", isCorrect: false },
-      { id: 2, text: "Tea", category: "beverage", isCorrect: false },
-      { id: 3, text: "Bread", category: "food", isCorrect: true },
-      { id: 4, text: "Juice", category: "beverage", isCorrect: false },
-    ],
-    explanation: "Bread is solid food, while the others are beverages."
-  },
-  {
-    id: 9,
-    question: "Which one is different?",
-    options: [
-      { id: 1, text: "Doctor", category: "profession", isCorrect: false },
-      { id: 2, text: "Teacher", category: "profession", isCorrect: false },
-      { id: 3, text: "Hospital", category: "place", isCorrect: true },
-      { id: 4, text: "Engineer", category: "profession", isCorrect: false },
-    ],
-    explanation: "Hospital is a place, while the others are professions."
-  },
-  {
-    id: 10,
-    question: "Find the odd one out:",
-    options: [
-      { id: 1, text: "Car", category: "vehicle", isCorrect: false },
-      { id: 2, text: "Bike", category: "vehicle", isCorrect: false },
-      { id: 3, text: "Road", category: "infrastructure", isCorrect: true },
-      { id: 4, text: "Bus", category: "vehicle", isCorrect: false },
-    ],
-    explanation: "Road is infrastructure, while the others are vehicles."
-  }
-];
+interface GameItem {
+  name: string;
+  category: string;
+  isOdd: boolean;
+}
+
+interface GameQuestion {
+  items: GameItem[];
+  explanation: string;
+}
+
+interface PowerUp {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  active: boolean;
+}
+
+// Built-in question database with dynamic generation
+const questionDatabase = {
+  easy: [
+    {
+      items: [
+        { name: "Apple", category: "Fruit", isOdd: false },
+        { name: "Banana", category: "Fruit", isOdd: false },
+        { name: "Orange", category: "Fruit", isOdd: false },
+        { name: "Carrot", category: "Vegetable", isOdd: true }
+      ],
+      explanation: "Carrot is a vegetable, while the others are fruits."
+    },
+    {
+      items: [
+        { name: "Dog", category: "Animal", isOdd: false },
+        { name: "Cat", category: "Animal", isOdd: false },
+        { name: "Bird", category: "Animal", isOdd: false },
+        { name: "Fish", category: "Aquatic Animal", isOdd: true }
+      ],
+      explanation: "Fish lives in water, while the others are land animals."
+    },
+    {
+      items: [
+        { name: "Red", category: "Color", isOdd: false },
+        { name: "Blue", category: "Color", isOdd: false },
+        { name: "Green", category: "Color", isOdd: false },
+        { name: "Square", category: "Shape", isOdd: true }
+      ],
+      explanation: "Square is a shape, while the others are colors."
+    },
+    {
+      items: [
+        { name: "Chair", category: "Furniture", isOdd: false },
+        { name: "Table", category: "Furniture", isOdd: false },
+        { name: "Bed", category: "Furniture", isOdd: false },
+        { name: "Book", category: "Object", isOdd: true }
+      ],
+      explanation: "Book is for reading, while the others are furniture."
+    },
+    {
+      items: [
+        { name: "Sun", category: "Celestial Body", isOdd: false },
+        { name: "Moon", category: "Celestial Body", isOdd: false },
+        { name: "Star", category: "Celestial Body", isOdd: false },
+        { name: "Cloud", category: "Weather", isOdd: true }
+      ],
+      explanation: "Cloud is weather-related, while the others are celestial bodies."
+    },
+    {
+      items: [
+        { name: "Pizza", category: "Food", isOdd: false },
+        { name: "Burger", category: "Food", isOdd: false },
+        { name: "Sandwich", category: "Food", isOdd: false },
+        { name: "Water", category: "Drink", isOdd: true }
+      ],
+      explanation: "Water is a drink, while the others are solid foods."
+    },
+    {
+      items: [
+        { name: "Car", category: "Vehicle", isOdd: false },
+        { name: "Bike", category: "Vehicle", isOdd: false },
+        { name: "Bus", category: "Vehicle", isOdd: false },
+        { name: "Tree", category: "Plant", isOdd: true }
+      ],
+      explanation: "Tree is a plant, while the others are vehicles."
+    },
+    {
+      items: [
+        { name: "Phone", category: "Electronics", isOdd: false },
+        { name: "Laptop", category: "Electronics", isOdd: false },
+        { name: "TV", category: "Electronics", isOdd: false },
+        { name: "Pencil", category: "Stationery", isOdd: true }
+      ],
+      explanation: "Pencil is stationery, while the others are electronics."
+    },
+    {
+      items: [
+        { name: "Soccer", category: "Sport", isOdd: false },
+        { name: "Basketball", category: "Sport", isOdd: false },
+        { name: "Tennis", category: "Sport", isOdd: false },
+        { name: "Music", category: "Art", isOdd: true }
+      ],
+      explanation: "Music is an art form, while the others are sports."
+    },
+    {
+      items: [
+        { name: "Doctor", category: "Profession", isOdd: false },
+        { name: "Teacher", category: "Profession", isOdd: false },
+        { name: "Engineer", category: "Profession", isOdd: false },
+        { name: "House", category: "Building", isOdd: true }
+      ],
+      explanation: "House is a building, while the others are professions."
+    }
+  ],
+  medium: [
+    {
+      items: [
+        { name: "Lion", category: "Big Cat", isOdd: false },
+        { name: "Tiger", category: "Big Cat", isOdd: false },
+        { name: "Leopard", category: "Big Cat", isOdd: false },
+        { name: "Wolf", category: "Canine", isOdd: true }
+      ],
+      explanation: "Wolf is a canine, while the others are big cats."
+    },
+    {
+      items: [
+        { name: "Piano", category: "String Instrument", isOdd: false },
+        { name: "Guitar", category: "String Instrument", isOdd: false },
+        { name: "Violin", category: "String Instrument", isOdd: false },
+        { name: "Drums", category: "Percussion", isOdd: true }
+      ],
+      explanation: "Drums are percussion, while the others are string instruments."
+    },
+    {
+      items: [
+        { name: "Winter", category: "Cold Season", isOdd: false },
+        { name: "Spring", category: "Warm Season", isOdd: false },
+        { name: "Summer", category: "Warm Season", isOdd: false },
+        { name: "Fall", category: "Warm Season", isOdd: false }
+      ],
+      explanation: "Winter is cold, while the others are warm seasons."
+    },
+    {
+      items: [
+        { name: "Doctor", category: "Medical Professional", isOdd: false },
+        { name: "Nurse", category: "Medical Professional", isOdd: false },
+        { name: "Teacher", category: "Education Professional", isOdd: true },
+        { name: "Surgeon", category: "Medical Professional", isOdd: false }
+      ],
+      explanation: "Teacher works in education, while the others are medical professionals."
+    },
+    {
+      items: [
+        { name: "Coffee", category: "Hot Beverage", isOdd: false },
+        { name: "Tea", category: "Hot Beverage", isOdd: false },
+        { name: "Hot Chocolate", category: "Hot Beverage", isOdd: false },
+        { name: "Orange Juice", category: "Cold Beverage", isOdd: true }
+      ],
+      explanation: "Orange juice is cold, while the others are hot beverages."
+    },
+    {
+      items: [
+        { name: "Eagle", category: "Bird of Prey", isOdd: false },
+        { name: "Hawk", category: "Bird of Prey", isOdd: false },
+        { name: "Falcon", category: "Bird of Prey", isOdd: false },
+        { name: "Penguin", category: "Flightless Bird", isOdd: true }
+      ],
+      explanation: "Penguin cannot fly, while the others are birds of prey."
+    },
+    {
+      items: [
+        { name: "Shark", category: "Ocean Fish", isOdd: false },
+        { name: "Whale", category: "Ocean Mammal", isOdd: true },
+        { name: "Dolphin", category: "Ocean Mammal", isOdd: false },
+        { name: "Seal", category: "Ocean Mammal", isOdd: false }
+      ],
+      explanation: "Shark is a fish, while the others are mammals."
+    },
+    {
+      items: [
+        { name: "Mountain", category: "Landform", isOdd: false },
+        { name: "Valley", category: "Landform", isOdd: false },
+        { name: "Hill", category: "Landform", isOdd: false },
+        { name: "Ocean", category: "Water Body", isOdd: true }
+      ],
+      explanation: "Ocean is a water body, while the others are landforms."
+    },
+    {
+      items: [
+        { name: "Fire", category: "Element", isOdd: false },
+        { name: "Water", category: "Element", isOdd: false },
+        { name: "Earth", category: "Element", isOdd: false },
+        { name: "Metal", category: "Material", isOdd: true }
+      ],
+      explanation: "Metal is a material, while the others are classical elements."
+    },
+    {
+      items: [
+        { name: "Rose", category: "Flower", isOdd: false },
+        { name: "Tulip", category: "Flower", isOdd: false },
+        { name: "Daisy", category: "Flower", isOdd: false },
+        { name: "Cactus", category: "Plant", isOdd: true }
+      ],
+      explanation: "Cactus is a plant, while the others are flowers."
+    },
+    {
+      items: [
+        { name: "Gold", category: "Precious Metal", isOdd: false },
+        { name: "Silver", category: "Precious Metal", isOdd: false },
+        { name: "Platinum", category: "Precious Metal", isOdd: false },
+        { name: "Paper", category: "Material", isOdd: true }
+      ],
+      explanation: "Paper is a material, while the others are precious metals."
+    }
+  ],
+  hard: [
+    {
+      items: [
+        { name: "Diamond", category: "Precious Stone", isOdd: false },
+        { name: "Ruby", category: "Precious Stone", isOdd: false },
+        { name: "Emerald", category: "Precious Stone", isOdd: false },
+        { name: "Pearl", category: "Organic Gem", isOdd: true }
+      ],
+      explanation: "Pearl is organic (from oysters), while the others are mineral stones."
+    },
+    {
+      items: [
+        { name: "Venus", category: "Terrestrial Planet", isOdd: false },
+        { name: "Earth", category: "Terrestrial Planet", isOdd: false },
+        { name: "Mars", category: "Terrestrial Planet", isOdd: false },
+        { name: "Jupiter", category: "Gas Giant", isOdd: true }
+      ],
+      explanation: "Jupiter is a gas giant, while the others are rocky terrestrial planets."
+    },
+    {
+      items: [
+        { name: "Shakespeare", category: "Playwright", isOdd: false },
+        { name: "Mozart", category: "Composer", isOdd: true },
+        { name: "Beethoven", category: "Composer", isOdd: false },
+        { name: "Bach", category: "Composer", isOdd: false }
+      ],
+      explanation: "Shakespeare wrote plays, while the others composed music."
+    },
+    {
+      items: [
+        { name: "Python", category: "Programming Language", isOdd: false },
+        { name: "Java", category: "Programming Language", isOdd: false },
+        { name: "JavaScript", category: "Programming Language", isOdd: false },
+        { name: "HTML", category: "Markup Language", isOdd: true }
+      ],
+      explanation: "HTML is a markup language, while the others are programming languages."
+    },
+    {
+      items: [
+        { name: "Soccer", category: "Team Sport", isOdd: false },
+        { name: "Basketball", category: "Team Sport", isOdd: false },
+        { name: "Tennis", category: "Individual Sport", isOdd: true },
+        { name: "Volleyball", category: "Team Sport", isOdd: false }
+      ],
+      explanation: "Tennis is individual, while the others are team sports."
+    },
+    {
+      items: [
+        { name: "Einstein", category: "Physicist", isOdd: false },
+        { name: "Newton", category: "Physicist", isOdd: false },
+        { name: "Darwin", category: "Biologist", isOdd: true },
+        { name: "Tesla", category: "Physicist", isOdd: false }
+      ],
+      explanation: "Darwin was a biologist, while the others were physicists."
+    },
+    {
+      items: [
+        { name: "Van Gogh", category: "Painter", isOdd: false },
+        { name: "Picasso", category: "Painter", isOdd: false },
+        { name: "Mozart", category: "Composer", isOdd: true },
+        { name: "Monet", category: "Painter", isOdd: false }
+      ],
+      explanation: "Mozart was a composer, while the others were painters."
+    },
+    {
+      items: [
+        { name: "DNA", category: "Genetic Material", isOdd: false },
+        { name: "RNA", category: "Genetic Material", isOdd: false },
+        { name: "Protein", category: "Macromolecule", isOdd: true },
+        { name: "Gene", category: "Genetic Material", isOdd: false }
+      ],
+      explanation: "Protein is a macromolecule, while the others are genetic materials."
+    },
+    {
+      items: [
+        { name: "Carbon", category: "Non-Metal", isOdd: false },
+        { name: "Nitrogen", category: "Non-Metal", isOdd: false },
+        { name: "Oxygen", category: "Non-Metal", isOdd: false },
+        { name: "Iron", category: "Metal", isOdd: true }
+      ],
+      explanation: "Iron is a metal, while the others are non-metals."
+    },
+    {
+      items: [
+        { name: "Democracy", category: "Government System", isOdd: false },
+        { name: "Republic", category: "Government System", isOdd: false },
+        { name: "Monarchy", category: "Government System", isOdd: false },
+        { name: "Capitalism", category: "Economic System", isOdd: true }
+      ],
+      explanation: "Capitalism is an economic system, while the others are government systems."
+    },
+    {
+      items: [
+        { name: "Hinduism", category: "Religion", isOdd: false },
+        { name: "Buddhism", category: "Religion", isOdd: false },
+        { name: "Christianity", category: "Religion", isOdd: false },
+        { name: "Philosophy", category: "Belief System", isOdd: true }
+      ],
+      explanation: "Philosophy is a belief system, while the others are religions."
+    }
+  ]
+};
+
+// Dynamic question generation with randomization
+function generateDynamicQuestion(difficulty: 'easy' | 'medium' | 'hard'): GameQuestion {
+  const baseQuestions = questionDatabase[difficulty];
+  const baseQuestion = baseQuestions[Math.floor(Math.random() * baseQuestions.length)];
+  
+  // Create variations by shuffling items and adding random elements
+  const variations = [
+    // Variation 1: Shuffle items
+    () => {
+      const shuffled = [...baseQuestion.items].sort(() => Math.random() - 0.5);
+      return { ...baseQuestion, items: shuffled };
+    },
+    
+    // Variation 2: Add random adjectives
+    () => {
+      const adjectives = ['Big', 'Small', 'Fast', 'Slow', 'Old', 'New', 'Red', 'Blue', 'Green', 'Yellow'];
+      const modifiedItems = baseQuestion.items.map(item => ({
+        ...item,
+        name: `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${item.name}`
+      }));
+      return { ...baseQuestion, items: modifiedItems };
+    },
+    
+    // Variation 3: Change categories slightly
+    () => {
+      const categoryVariations: { [key: string]: string[] } = {
+        'Animal': ['Wild Animal', 'Domestic Animal', 'Pet'],
+        'Fruit': ['Tropical Fruit', 'Citrus Fruit', 'Berry'],
+        'Color': ['Warm Color', 'Cool Color', 'Primary Color'],
+        'Furniture': ['Living Room Furniture', 'Bedroom Furniture', 'Office Furniture']
+      };
+      
+      const modifiedItems = baseQuestion.items.map(item => {
+        const variations = categoryVariations[item.category] || [item.category];
+        return {
+          ...item,
+          category: variations[Math.floor(Math.random() * variations.length)]
+        };
+      });
+      return { ...baseQuestion, items: modifiedItems };
+    }
+  ];
+  
+  // Apply random variation
+  const variation = variations[Math.floor(Math.random() * variations.length)];
+  return variation();
+}
 
 export default function OddOneOutGame() {
-  const router = useRouter();
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [gameState, setGameState] = useState<'idle' | 'playing' | 'result'>('idle');
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [score, setScore] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [gameCompleted, setGameCompleted] = useState(false);
-  const [timer, setTimer] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [highScore, setHighScore] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
+  const [questionsAnswered, setQuestionsAnswered] = useState(0);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [powerUps, setPowerUps] = useState<PowerUp[]>([
+    { id: 'doubleScore', name: 'Double Score', description: 'Double your score for the next question!', cost: 100, active: false },
+    { id: 'timeBoost', name: 'Time Boost', description: 'Get an extra 10 seconds on your timer!', cost: 200, active: false },
+    { id: 'skipQuestion', name: 'Skip Question', description: 'Skip the current question and get a point!', cost: 50, active: false }
+  ]);
 
-  const currentQuestion = sampleData[currentQuestionIndex];
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load high score on component mount
   useEffect(() => {
-    if (timer > 0 && !showResult && !gameCompleted) {
-      const interval = setInterval(() => {
-        setTimer(prev => prev - 1);
+    loadHighScore();
+    loadStats();
+  }, []);
+
+  // Timer effect
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => {
+        setTimeLeft(prev => prev - 1);
       }, 1000);
-      return () => clearInterval(interval);
-    } else if (timer === 0 && !showResult) {
-      handleAnswer(null);
+    } else if (timeLeft === 0 && gameState === 'playing') {
+      handleTimeUp();
     }
-  }, [timer, showResult, gameCompleted]);
 
-  const handleAnswer = (selectedId: number | null) => {
-    setSelectedAnswer(selectedId);
-    setShowResult(true);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [gameState, timeLeft]);
 
-    const correctAnswer = currentQuestion.options.find(option => option.isCorrect);
+  const loadHighScore = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('oddOneOutHighScore');
+      if (saved) {
+        setHighScore(parseInt(saved));
+      }
+    } catch (error) {
+      console.log('Error loading high score:', error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const savedStats = await AsyncStorage.getItem('oddOneOutStats');
+      if (savedStats) {
+        const stats = JSON.parse(savedStats);
+        setMaxStreak(stats.maxStreak || 0);
+        setQuestionsAnswered(stats.questionsAnswered || 0);
+        setCorrectAnswers(stats.correctAnswers || 0);
+      }
+    } catch (error) {
+      console.log('Error loading stats:', error);
+    }
+  };
+
+  const saveStats = async () => {
+    try {
+      const stats = {
+        maxStreak,
+        questionsAnswered,
+        correctAnswers,
+        lastPlayed: new Date().toISOString()
+      };
+      await AsyncStorage.setItem('oddOneOutStats', JSON.stringify(stats));
+    } catch (error) {
+      console.log('Error saving stats:', error);
+    }
+  };
+
+  const saveHighScore = async (newScore: number) => {
+    try {
+      await AsyncStorage.setItem('oddOneOutHighScore', newScore.toString());
+      setHighScore(newScore);
+    } catch (error) {
+      console.log('Error saving high score:', error);
+    }
+  };
+
+  const generateNewQuestion = () => {
+    setLoading(true);
+    // Simulate loading for better UX
+    setTimeout(() => {
+      const question = generateDynamicQuestion(difficulty);
+      setCurrentQuestion(question);
+      setSelectedAnswer(null);
+      setLoading(false);
+      
+      // Animate question appearance
+      Animated.sequence([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ]).start();
+    }, 500);
+  };
+
+  const startGame = () => {
+    setGameState('playing');
+    setScore(0);
+    setStreak(0);
+    setTimeLeft(getTimeLimit());
+    setQuestionsAnswered(0);
+    setCorrectAnswers(0);
+    generateNewQuestion();
     
-    if (selectedId === correctAnswer?.id) {
-      setScore(prev => prev + 10);
+    // Reset power-ups
+    setPowerUps(prev => prev.map(p => ({ ...p, active: false })));
+  };
+
+  const getTimeLimit = () => {
+    switch (difficulty) {
+      case 'easy': return 45;
+      case 'medium': return 30;
+      case 'hard': return 20;
+      default: return 30;
+    }
+  };
+
+  const usePowerUp = (powerUpId: string) => {
+    const powerUp = powerUps.find(p => p.id === powerUpId);
+    if (!powerUp || score < powerUp.cost) return;
+
+    setScore(prev => prev - powerUp.cost);
+    setPowerUps(prev => prev.map(p => 
+      p.id === powerUpId ? { ...p, active: true } : p
+    ));
+
+    switch (powerUpId) {
+      case 'timeBoost':
+        setTimeLeft(prev => prev + 10);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        break;
+      case 'skipQuestion':
+        handleSkipQuestion();
+        break;
+    }
+  };
+
+  const handleSkipQuestion = () => {
+    setScore(prev => prev + 50);
+    setQuestionsAnswered(prev => prev + 1);
+    generateNewQuestion();
+    setPowerUps(prev => prev.map(p => 
+      p.id === 'skipQuestion' ? { ...p, active: false } : p
+    ));
+  };
+
+  const handleAnswer = (itemName: string) => {
+    if (gameState !== 'playing' || !currentQuestion) return;
+
+    setSelectedAnswer(itemName);
+    const selectedItem = currentQuestion.items.find(item => item.name === itemName);
+    
+    if (selectedItem?.isOdd) {
+      // Correct answer
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setIsCorrect(true);
+      
+      // Calculate score based on time, difficulty, and streak
+      const timeBonus = Math.floor(timeLeft * 10);
+      const difficultyMultiplier = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 1.5 : 2;
+      const streakBonus = Math.floor(streak * 20);
+      let roundScore = Math.floor((100 + timeBonus + streakBonus) * difficultyMultiplier);
+      
+      // Apply double score power-up
+      const doubleScoreActive = powerUps.find(p => p.id === 'doubleScore')?.active;
+      if (doubleScoreActive) {
+        roundScore *= 2;
+        setPowerUps(prev => prev.map(p => 
+          p.id === 'doubleScore' ? { ...p, active: false } : p
+        ));
+      }
+      
+      setScore(prev => prev + roundScore);
       setStreak(prev => {
         const newStreak = prev + 1;
         setMaxStreak(prevMax => Math.max(prevMax, newStreak));
         return newStreak;
       });
+      setCorrectAnswers(prev => prev + 1);
+      
+      // Animate correct answer
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        })
+      ]).start();
+      
+      // Show result briefly, then continue
+      setTimeout(() => {
+        setIsCorrect(false);
+        setSelectedAnswer(null);
+        setQuestionsAnswered(prev => prev + 1);
+        generateNewQuestion();
+      }, 1500);
     } else {
+      // Wrong answer
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setIsCorrect(false);
       setStreak(0);
+      
+      // Animate wrong answer
+      Animated.sequence([
+        Animated.timing(slideAnim, {
+          toValue: 10,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: -10,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        })
+      ]).start();
+      
+      // Show result briefly, then continue
+      setTimeout(() => {
+        setIsCorrect(false);
+        setSelectedAnswer(null);
+        setQuestionsAnswered(prev => prev + 1);
+        generateNewQuestion();
+      }, 1500);
     }
-
-    setTimeout(() => {
-      if (currentQuestionIndex < sampleData.length - 1) {
-        nextQuestion();
-      } else {
-        setGameCompleted(true);
-      }
-    }, 2000);
   };
 
-  const nextQuestion = () => {
-    setCurrentQuestionIndex(prev => prev + 1);
-    setSelectedAnswer(null);
-    setShowResult(false);
-    setTimer(30);
+  const handleTimeUp = () => {
+    setGameState('result');
+    if (score > highScore) {
+      saveHighScore(score);
+    }
+    saveStats();
   };
 
   const resetGame = () => {
-    setCurrentQuestionIndex(0);
+    setGameState('idle');
     setScore(0);
-    setSelectedAnswer(null);
-    setShowResult(false);
-    setGameCompleted(false);
-    setTimer(30);
     setStreak(0);
-    setMaxStreak(0);
+    setTimeLeft(getTimeLimit());
+    setSelectedAnswer(null);
+    setCurrentQuestion(null);
+    setIsCorrect(false);
+    setQuestionsAnswered(0);
+    setCorrectAnswers(0);
+    
+    // Reset power-ups
+    setPowerUps(prev => prev.map(p => ({ ...p, active: false })));
   };
 
-  const getOptionStyle = (optionId: number) => {
-    if (!showResult) {
-      return selectedAnswer === optionId ? styles.selectedOption : styles.option;
-    }
+  const handleDifficultyChange = (newDifficulty: 'easy' | 'medium' | 'hard') => {
+    setDifficulty(newDifficulty);
+    setTimeLeft(getTimeLimit());
+  };
 
-    const isCorrect = currentQuestion.options.find(opt => opt.id === optionId)?.isCorrect;
-    const isSelected = selectedAnswer === optionId;
-
+  const getOptionStyle = (itemName: string) => {
+    if (selectedAnswer !== itemName) return styles.option;
+    
     if (isCorrect) {
-      return styles.correctOption;
-    } else if (isSelected && !isCorrect) {
-      return styles.incorrectOption;
+      return [styles.option, styles.correctAnswer];
     } else {
-      return styles.option;
+      return [styles.option, styles.wrongAnswer];
     }
   };
 
-  if (gameCompleted) {
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getAccuracy = () => {
+    if (questionsAnswered === 0) return 0;
+    return Math.round((correctAnswers / questionsAnswered) * 100);
+  };
+
+  if (gameState === 'idle') {
     return (
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
-        <SafeAreaView style={styles.container}>
-          <View style={styles.gameOverContainer}>
-            <Text style={styles.gameOverTitle}>🎉 Game Complete!</Text>
-            <Text style={styles.scoreText}>Final Score: {score}</Text>
-            <Text style={styles.streakText}>Best Streak: {maxStreak}</Text>
-            <Text style={styles.accuracyText}>
-              Accuracy: {Math.round((score / (sampleData.length * 10)) * 100)}%
-            </Text>
-            
-            <TouchableOpacity style={styles.playAgainButton} onPress={resetGame}>
-              <RotateCcw size={20} color="white" />
-              <Text style={styles.playAgainText}>Play Again</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.backButton} 
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <LinearGradient
+          colors={['#1a1a2e', '#16213e', '#0f3460']}
+          style={styles.gradient}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={() => router.back()}
             >
-              <Text style={styles.backButtonText}>← Back to Games</Text>
+              <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>Odd One Out</Text>
+            <View style={styles.placeholder} />
+          </View>
+
+          <View style={styles.content}>
+            <Text style={styles.subtitle}>Find the item that doesn't belong!</Text>
+            
+            <View style={styles.statsSection}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>High Score</Text>
+                <Text style={styles.statValue}>{highScore}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Max Streak</Text>
+                <Text style={styles.statValue}>{maxStreak}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Accuracy</Text>
+                <Text style={styles.statValue}>{getAccuracy()}%</Text>
+              </View>
+            </View>
+            
+            <View style={styles.difficultySection}>
+              <Text style={styles.difficultyTitle}>Difficulty</Text>
+              <View style={styles.difficultyButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.difficultyButton,
+                    difficulty === 'easy' && styles.activeDifficulty
+                  ]}
+                  onPress={() => handleDifficultyChange('easy')}
+                >
+                  <Text style={[
+                    styles.difficultyText,
+                    difficulty === 'easy' && styles.activeDifficultyText
+                  ]}>Easy</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.difficultyButton,
+                    difficulty === 'medium' && styles.activeDifficulty
+                  ]}
+                  onPress={() => handleDifficultyChange('medium')}
+                >
+                  <Text style={[
+                    styles.difficultyText,
+                    difficulty === 'medium' && styles.activeDifficultyText
+                  ]}>Medium</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.difficultyButton,
+                    difficulty === 'hard' && styles.activeDifficulty
+                  ]}
+                  onPress={() => handleDifficultyChange('hard')}
+                >
+                  <Text style={[
+                    styles.difficultyText,
+                    difficulty === 'hard' && styles.activeDifficultyText
+                  ]}>Hard</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.infoSection}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Time Limit:</Text>
+                <Text style={styles.infoValue}>{getTimeLimit()} seconds</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Questions:</Text>
+                <Text style={styles.infoValue}>Unlimited</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.startButton} onPress={startGame}>
+              <Text style={styles.startButtonText}>Start Game</Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
-      </LinearGradient>
+        </LinearGradient>
+      </SafeAreaView>
     );
   }
 
-  return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+  if (gameState === 'playing') {
+    return (
       <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => router.back()}
+        <StatusBar barStyle="light-content" />
+        <LinearGradient
+          colors={['#1a1a2e', '#16213e', '#0f3460']}
+          style={styles.gradient}
+        >
+          <View style={styles.gameHeader}>
+            <View style={styles.gameInfo}>
+              <Text style={styles.scoreText}>Score: {score}</Text>
+              <Text style={styles.timeText}>Time: {formatTime(timeLeft)}</Text>
+              <Text style={styles.streakText}>Streak: {streak}</Text>
+            </View>
+            <View style={styles.difficultyBadge}>
+              <Text style={styles.difficultyBadgeText}>{difficulty.toUpperCase()}</Text>
+            </View>
+          </View>
+
+          {/* Power-ups Section */}
+          <View style={styles.powerUpsSection}>
+            {powerUps.map((powerUp) => (
+              <TouchableOpacity
+                key={powerUp.id}
+                style={[
+                  styles.powerUpButton,
+                  score < powerUp.cost && styles.powerUpDisabled,
+                  powerUp.active && styles.powerUpActive
+                ]}
+                onPress={() => usePowerUp(powerUp.id)}
+                disabled={score < powerUp.cost}
+              >
+                <Text style={styles.powerUpName}>{powerUp.name}</Text>
+                <Text style={styles.powerUpCost}>{powerUp.cost}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Animated.View 
+            style={[
+              styles.gameContent,
+              { opacity: fadeAnim }
+            ]}
           >
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Odd One Out</Text>
-          <View style={styles.placeholder} />
-        </View>
+            <Text style={styles.questionText}>Which one doesn't belong?</Text>
+            
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading question...</Text>
+              </View>
+            ) : currentQuestion ? (
+              <Animated.View 
+                style={[
+                  styles.optionsContainer,
+                  { transform: [{ scale: scaleAnim }, { translateX: slideAnim }] }
+                ]}
+              >
+                {currentQuestion.items.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={getOptionStyle(item.name)}
+                    onPress={() => handleAnswer(item.name)}
+                    disabled={selectedAnswer !== null}
+                  >
+                    <Text style={styles.optionText}>{item.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </Animated.View>
+            ) : null}
 
-        {/* Stats Bar */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Trophy size={20} color="#ffd700" />
-            <Text style={styles.statText}>{score}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Clock size={20} color="#ffffff" />
-            <Text style={styles.statText}>{timer}s</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Brain size={20} color="#4ade80" />
-            <Text style={styles.statText}>{streak}</Text>
-          </View>
-        </View>
-
-        {/* Progress */}
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
-            Question {currentQuestionIndex + 1} of {sampleData.length}
-          </Text>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${((currentQuestionIndex + 1) / sampleData.length) * 100}%` }
-              ]} 
-            />
-          </View>
-        </View>
-
-        {/* Question */}
-        <View style={styles.questionContainer}>
-          <Text style={styles.questionText}>{currentQuestion.question}</Text>
-        </View>
-
-        {/* Options */}
-        <View style={styles.optionsContainer}>
-          {currentQuestion.options.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={getOptionStyle(option.id)}
-              onPress={() => !showResult && handleAnswer(option.id)}
-              disabled={showResult}
-            >
-              <Text style={styles.optionText}>{option.text}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Explanation */}
-        {showResult && (
-          <View style={styles.explanationContainer}>
-            <Text style={styles.explanationText}>{currentQuestion.explanation}</Text>
-          </View>
-        )}
+            {selectedAnswer && (
+              <Animated.View 
+                style={[
+                  styles.feedbackContainer,
+                  { transform: [{ scale: pulseAnim }] }
+                ]}
+              >
+                <Text style={[
+                  styles.feedbackText,
+                  isCorrect ? styles.correctFeedback : styles.wrongFeedback
+                ]}>
+                  {isCorrect ? 'Correct!' : 'Wrong!'}
+                </Text>
+                {currentQuestion && (
+                  <Text style={styles.explanationText}>
+                    {currentQuestion.explanation}
+                  </Text>
+                )}
+              </Animated.View>
+            )}
+          </Animated.View>
+        </LinearGradient>
       </SafeAreaView>
-    </LinearGradient>
-  );
+    );
+  }
+
+  if (gameState === 'result') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <LinearGradient
+          colors={['#1a1a2e', '#16213e', '#0f3460']}
+          style={styles.gradient}
+        >
+          <View style={styles.resultContent}>
+            <Text style={styles.resultTitle}>Game Over!</Text>
+            
+            <View style={styles.scoreSection}>
+              <Text style={styles.finalScoreText}>Final Score: {score}</Text>
+              <Text style={styles.highScoreText}>High Score: {highScore}</Text>
+              
+              {score >= highScore && score > 0 && (
+                <View style={styles.newRecordContainer}>
+                  <Text style={styles.newRecordText}>🎉 New Record! 🎉</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statItemLabel}>Questions</Text>
+                <Text style={styles.statItemValue}>{questionsAnswered}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statItemLabel}>Correct</Text>
+                <Text style={styles.statItemValue}>{correctAnswers}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statItemLabel}>Accuracy</Text>
+                <Text style={styles.statItemValue}>{getAccuracy()}%</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statItemLabel}>Max Streak</Text>
+                <Text style={styles.statItemValue}>{maxStreak}</Text>
+              </View>
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.playAgainButton} onPress={resetGame}>
+                <Text style={styles.playAgainButtonText}>Play Again</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.menuButton} onPress={() => router.back()}>
+                <Text style={styles.menuButtonText}>Back to Menu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  return null;
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  gradient: {
     flex: 1,
   },
   header: {
@@ -327,179 +963,373 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   backButtonText: {
-    fontSize: 24,
-    color: 'white',
+    color: '#fff',
+    fontSize: 20,
     fontWeight: 'bold',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
+    color: '#fff',
   },
   placeholder: {
     width: 40,
   },
-  statsContainer: {
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  statsSection: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: 40,
+    marginBottom: 40,
+  },
+  statCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingVertical: 15,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginHorizontal: 20,
-    borderRadius: 15,
-    marginBottom: 20,
-  },
-  statItem: {
-    flexDirection: 'row',
+    paddingHorizontal: 20,
+    borderRadius: 10,
     alignItems: 'center',
-    gap: 8,
+    width: '30%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  statText: {
-    color: 'white',
+  statLabel: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  statValue: {
+    color: '#4CAF50',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  difficultySection: {
+    marginBottom: 40,
+  },
+  difficultyTitle: {
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  difficultyButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  difficultyButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  activeDifficulty: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  difficultyText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  progressContainer: {
+  activeDifficultyText: {
+    color: '#fff',
+  },
+  infoSection: {
+    marginBottom: 40,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  infoLabel: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  infoValue: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  startButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  gameHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  gameInfo: {
+    flex: 1,
+  },
+  scoreText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  timeText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  streakText: {
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  difficultyBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  difficultyBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  powerUpsSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-  progressText: {
-    color: 'white',
-    fontSize: 14,
+  powerUpButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  powerUpActive: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  powerUpDisabled: {
+    opacity: 0.5,
+  },
+  powerUpName: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 8,
   },
-  progressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 3,
-    overflow: 'hidden',
+  powerUpCost: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 2,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4ade80',
-    borderRadius: 3,
-  },
-  questionContainer: {
+  gameContent: {
+    flex: 1,
     paddingHorizontal: 20,
-    marginBottom: 30,
+    justifyContent: 'center',
   },
   questionText: {
     fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
+    color: '#fff',
     textAlign: 'center',
-    lineHeight: 28,
+    marginBottom: 30,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
   },
   optionsContainer: {
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  option: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  selectedOption: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#667eea',
-  },
-  correctOption: {
-    backgroundColor: '#22c55e',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#16a34a',
-  },
-  incorrectOption: {
-    backgroundColor: '#ef4444',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#dc2626',
-  },
-  optionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    textAlign: 'center',
-  },
-  explanationContainer: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4ade80',
-  },
-  explanationText: {
-    color: 'white',
-    fontSize: 14,
-    lineHeight: 20,
-    fontStyle: 'italic',
-  },
-  gameOverContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  gameOverTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 20,
-  },
-  scoreText: {
-    fontSize: 24,
-    color: 'white',
-    marginBottom: 10,
-  },
-  streakText: {
-    fontSize: 18,
-    color: 'white',
-    marginBottom: 10,
-  },
-  accuracyText: {
-    fontSize: 18,
-    color: 'white',
     marginBottom: 30,
   },
-  playAgainButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#22c55e',
+  option: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    gap: 10,
-    marginBottom: 15,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  playAgainText: {
-    color: 'white',
+  correctAnswer: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  wrongAnswer: {
+    backgroundColor: '#f44336',
+    borderColor: '#f44336',
+  },
+  optionText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  feedbackContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  feedbackText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  correctFeedback: {
+    color: '#4CAF50',
+  },
+  wrongFeedback: {
+    color: '#f44336',
+  },
+  explanationText: {
+    color: '#fff',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  resultContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resultTitle: {
+    fontSize: 28,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 30,
+  },
+  scoreSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  finalScoreText: {
+    fontSize: 24,
+    color: '#4CAF50',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  highScoreText: {
+    fontSize: 18,
+    color: '#fff',
+    marginBottom: 20,
+  },
+  newRecordContainer: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  newRecordText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 40,
+  },
+  statItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: '45%',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  statItemLabel: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  statItemValue: {
+    color: '#4CAF50',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    width: '100%',
+  },
+  playAgainButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 15,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  playAgainButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  menuButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  menuButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

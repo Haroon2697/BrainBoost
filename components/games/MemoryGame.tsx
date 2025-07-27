@@ -116,18 +116,18 @@ export default function MemoryGame() {
     if (correct.row === row && correct.col === col) {
       // Success animation - individual tile for medium/hard, full grid for easy
       if (difficulty === 'easy') {
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-        ]).start()
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start()
       } else {
         animateTile(key)
       }
@@ -215,21 +215,21 @@ if (sequence.length > highScore) {
     const tileAnim = tileAnimations[key]
 
     if (difficulty === 'easy') {
-      return (
-        <TouchableOpacity
-          key={key}
-          onPress={() => handleTilePress(row, col)}
-          style={[
-            styles.tile,
-            { width: tileSize, height: tileSize },
-            isActive && styles.activeTile,
-            wasTapped && styles.tappedTile,
-          ]}
-          disabled={flashing}
-          activeOpacity={0.8}
-        >
-          {isActive && <View style={styles.glowEffect} />}
-        </TouchableOpacity>
+    return (
+      <TouchableOpacity
+        key={key}
+        onPress={() => handleTilePress(row, col)}
+        style={[
+          styles.tile,
+          { width: tileSize, height: tileSize },
+          isActive && styles.activeTile,
+          wasTapped && styles.tappedTile,
+        ]}
+        disabled={flashing}
+        activeOpacity={0.8}
+      >
+        {isActive && <View style={styles.glowEffect} />}
+      </TouchableOpacity>
       )
     }
 
@@ -316,7 +316,7 @@ if (sequence.length > highScore) {
           <TouchableOpacity style={styles.backButton} onPress={() => setDifficulty(null)} activeOpacity={0.8}>
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.gameTitle}>Memory Tiles</Text>
+        <Text style={styles.gameTitle}>Memory Tiles</Text>
           <View style={styles.placeholder} />
         </View>
 

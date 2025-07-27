@@ -7,13 +7,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Animated,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import MultiplayerResultScreen from './MultiplayerResultScreen';
@@ -147,14 +147,14 @@ export default function ReactionTapGame() {
   };
 
   const startRealSignal = () => {
-    startTimestamp.current = Date.now();
-    setGameState('ready');
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.4, duration: 250, useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1.0, duration: 250, useNativeDriver: true }),
-      ])
-    ).start();
+      startTimestamp.current = Date.now();
+      setGameState('ready');
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleAnim, { toValue: 1.4, duration: 250, useNativeDriver: true }),
+          Animated.timing(scaleAnim, { toValue: 1.0, duration: 250, useNativeDriver: true }),
+        ])
+      ).start();
   };
 
   const startGame = () => {
@@ -256,15 +256,15 @@ export default function ReactionTapGame() {
       if (isMultiplayerMode) {
         handleMultiplayerRoundComplete(reaction);
       } else {
-        const updatedHistory = [...reactionHistory, reaction].slice(-20);
-        setReactionHistory(updatedHistory);
-        updateAverage(updatedHistory);
-        saveHistory(updatedHistory);
-        setGameState('result');
+      const updatedHistory = [...reactionHistory, reaction].slice(-20);
+      setReactionHistory(updatedHistory);
+      updateAverage(updatedHistory);
+      saveHistory(updatedHistory);
+      setGameState('result');
 
-        if (bestTime === null || reaction < bestTime) {
-          setBestTime(reaction);
-          saveHighScore(reaction);
+      if (bestTime === null || reaction < bestTime) {
+        setBestTime(reaction);
+        saveHighScore(reaction);
         }
       }
     }
