@@ -1,13 +1,24 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+"use client"
+
+import { Ionicons } from "@expo/vector-icons"
+import { Tabs } from "expo-router"
 
 export default function TabsLayout() {
   return (
-    <Tabs>
+    <Tabs
+      screenOptions={{
+        tabBarStyle: {
+          backgroundColor: "#1a1a1a",
+          borderTopColor: "#333",
+        },
+        tabBarActiveTintColor: "#10b981",
+        tabBarInactiveTintColor: "#666",
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
         }}
@@ -15,7 +26,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="games"
         options={{
-          title: 'Games',
+          title: "Games",
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name="game-controller-outline" size={size} color={color} />,
         }}
@@ -23,7 +34,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: "Profile",
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
@@ -31,11 +42,11 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="stats"
         options={{
-          title: 'Stats',
+          title: "Stats",
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name="bar-chart-outline" size={size} color={color} />,
         }}
       />
     </Tabs>
-  );
+  )
 }

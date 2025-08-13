@@ -1,4 +1,4 @@
-import MineSweeperGame from '../../components/games/MIneSweeperGame';
+import MineSweeperGame from '../../components/games/MineSweeperGame';
 
 export default function MineSweep() {
   return <MineSweeperGame />;

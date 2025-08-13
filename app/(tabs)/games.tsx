@@ -1,276 +1,387 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { Brain, Calculator, Gamepad2, Circle as HelpCircle, Play, Puzzle, Type, X, Zap } from 'lucide-react-native';
-import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+"use client"
 
-const { width } = Dimensions.get('window');
-const screenPadding = 16;
-const cardSpacing = 12;
-const cardWidth = (width - (screenPadding * 2) - cardSpacing) / 2;
+import { LinearGradient } from "expo-linear-gradient"
+import { useRouter } from "expo-router"
+import {
+  Brain,
+  Calculator,
+  Gamepad2,
+  Circle as HelpCircle,
+  Play,
+  Puzzle,
+  Type,
+  X,
+  Zap,
+  Search,
+  Star,
+} from "lucide-react-native"
+import { Dimensions, Pressable, StyleSheet, Text, View, TextInput, ScrollView } from "react-native"
+import { useState } from "react"
+const { width } = Dimensions.get("window")
+const screenPadding = 24
+const cardSpacing = 12
+const cardWidth = (width - screenPadding * 2 - cardSpacing) / 2
 
 const games = [
-  { 
-    id: '1', 
-    name: 'Hangman', 
-    route: '/game/hangman' as const,
-    description: 'Guess the word letter by letter',
+  {
+    id: "1",
+    name: "Hangman",
+    route: "/game/hangman" as const,
+    description: "Guess the word letter by letter",
     icon: Type,
-    gradient: ['#a8edea', '#fed6e3'] as const,
-    difficulty: 'Easy'
+    difficulty: "Easy",
+    category: "Word",
+    rating: 4.8,
   },
-  { 
-    id: '2', 
-    name: 'Memory Match', 
-    route: '/game/memory' as const,
-    description: 'Match pairs and test your memory',
+  {
+    id: "2",
+    name: "Memory Match",
+    route: "/game/memory" as const,
+    description: "Match pairs and test your memory",
     icon: Brain,
-    gradient: ['#b8f4ea', '#fec6d3'] as const,
-    difficulty: 'Medium'
+    difficulty: "Medium",
+    category: "Memory",
+    rating: 4.9,
   },
-  { 
-    id: '3', 
-    name: 'Math Challenge', 
-    route: '/game/math-challenge' as const,
-    description: 'Solve equations against the clock',
+  {
+    id: "3",
+    name: "Math Challenge",
+    route: "/game/math-challenge" as const,
+    description: "Solve equations against the clock",
     icon: Calculator,
-    gradient: ['#98e4ea', '#fee6e3'] as const,
-    difficulty: 'Hard'
+    difficulty: "Hard",
+    category: "Math",
+    rating: 4.7,
   },
-  { 
-    id: '4', 
-    name: 'Logic Puzzle', 
-    route: '/game/logic-puzzle' as const,
-    description: 'Exercise your logical thinking',
+  {
+    id: "4",
+    name: "Logic Puzzle",
+    route: "/game/logic-puzzle" as const,
+    description: "Exercise your logical thinking",
     icon: Puzzle,
-    gradient: ['#c8f0ea', '#fec0d3'] as const,
-    difficulty: 'Hard'
+    difficulty: "Hard",
+    category: "Logic",
+    rating: 4.6,
   },
-  { 
-    id: '5', 
-    name: 'Reaction Time', 
-    route: '/game/reaction-time' as const,
-    description: 'Test your reflexes and speed',
+  {
+    id: "5",
+    name: "Reaction Time",
+    route: "/game/reaction-time" as const,
+    description: "Test your reflexes and speed",
     icon: Zap,
-    gradient: ['#a0e8ea', '#fecce3'] as const,
-    difficulty: 'Easy'
+    difficulty: "Easy",
+    category: "Speed",
+    rating: 4.5,
   },
-  { 
-    id: '6', 
-    name: 'Word Builder', 
-    route: '/game/word-builder' as const,
-    description: 'Create words from given letters',
+  {
+    id: "6",
+    name: "Word Builder",
+    route: "/game/word-builder" as const,
+    description: "Create words from given letters",
     icon: Gamepad2,
-    gradient: ['#a8edea', '#fed6e3'] as const,
-    difficulty: 'Medium'
+    difficulty: "Medium",
+    category: "Word",
+    rating: 4.4,
   },
-  { 
-    id: '7', 
-    name: 'Minesweep', 
-    route: '/game/minesweep' as const,
-    description: 'Answer questions across topics',
+  {
+    id: "7",
+    name: "Minesweep",
+    route: "/game/minesweep" as const,
+    description: "Answer questions across topics",
     icon: HelpCircle,
-    gradient: ['#b0ecea', '#fecad3'] as const,
-    difficulty: 'Medium'
+    difficulty: "Medium",
+    category: "Strategy",
+    rating: 4.3,
   },
-  { 
-    id: '8', 
-    name: 'Odd One Out', 
-    route: '/game/odd-one-out' as const,
-    description: 'Find the item that doesn\'t belong',
+  {
+    id: "8",
+    name: "Odd One Out",
+    route: "/game/odd-one-out" as const,
+    description: "Find the item that doesn't belong",
     icon: X,
-    gradient: ['#a8edea', '#fed6e3'] as const,
-    difficulty: 'Medium'
+    difficulty: "Medium",
+    category: "Logic",
+    rating: 4.2,
   },
-];
+]
+
+const categories = ["All", "Word", "Memory", "Math", "Logic", "Speed", "Strategy"]
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty) {
-    case 'Easy': return '#10b981';
-    case 'Medium': return '#f59e0b';
-    case 'Hard': return '#ef4444';
-    default: return '#6b7280';
+    case "Easy":
+      return "#10b981"
+    case "Medium":
+      return "#f59e0b"
+    case "Hard":
+      return "#ef4444"
+    default:
+      return "#6b7280"
   }
-};
+}
 
 export default function GamesScreen() {
-  const router = useRouter();
+  const router = useRouter()
+  const [selectedCategory, setSelectedCategory] = useState("All")
+  const [searchQuery, setSearchQuery] = useState("")
 
-  const renderGameCard = ({ item }: { item: typeof games[0] }) => {
-    const IconComponent = item.icon;
-    
+  const filteredGames = games.filter((game) => {
+    const matchesCategory = selectedCategory === "All" || game.category === selectedCategory
+    const matchesSearch = game.name.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
+
+  const renderGameCard = (game: (typeof games)[0]) => {
     return (
-      <Pressable 
+      <Pressable
         style={styles.cardContainer}
-        onPress={() => router.push(item.route)}
-        android_ripple={{ color: 'rgba(255,255,255,0.3)' }}
+        onPress={() => router.push(game.route)}
+        android_ripple={{ color: "rgba(255,255,255,0.1)" }}
       >
-        <LinearGradient
-          colors={item.gradient}
-          style={styles.card}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.cardContent}>
-            <View style={styles.iconContainer}>
-              <IconComponent size={32} color="black" strokeWidth={2} />
+        <LinearGradient colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.iconContainer, { backgroundColor: "rgba(16, 185, 129, 0.2)" }]}>
+              <game.icon size={24} color="#10b981" strokeWidth={2} />
             </View>
-            
-            <Text style={styles.gameName}>{item.name}</Text>
-            <Text style={styles.gameDescription}>{item.description}</Text>
-            
-            <View style={styles.cardFooter}>
-              <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.difficulty) }]}>
-                <Text style={styles.difficultyText}>{item.difficulty}</Text>
-              </View>
-              
-              <View style={styles.playButton}>
-                <Play size={16} color="black" fill="black" />
-              </View>
+            <View style={styles.ratingContainer}>
+              <Star size={12} color="#f59e0b" fill="#f59e0b" />
+              <Text style={[styles.ratingText, { color: "white" }]}>{game.rating}</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardBody}>
+            <Text style={[styles.gameName, { color: "white" }]}>{game.name}</Text>
+            <Text style={[styles.gameDescription, { color: "rgba(255,255,255,0.7)" }]}>{game.description}</Text>
+          </View>
+
+          <View style={styles.cardFooter}>
+            <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(game.difficulty) }]}>
+              <Text style={styles.difficultyText}>{game.difficulty}</Text>
+            </View>
+            <View style={[styles.playButton, { backgroundColor: "#10b981" }]}>
+              <Play size={14} color="white" fill="white" />
             </View>
           </View>
         </LinearGradient>
       </Pressable>
-    );
-  };
+    )
+  }
+
+  const renderCategoryButton = (category: string) => (
+    <Pressable
+      key={category}
+      style={[
+        styles.categoryButton,
+        { backgroundColor: selectedCategory === category ? "#10b981" : "rgba(255,255,255,0.1)" },
+        selectedCategory === category && styles.selectedCategoryButton,
+      ]}
+      onPress={() => setSelectedCategory(category)}
+    >
+      <Text style={[styles.categoryText, { color: selectedCategory === category ? "white" : "rgba(255,255,255,0.7)" }]}>
+        {category}
+      </Text>
+    </Pressable>
+  )
 
   return (
-    <LinearGradient colors={['#1a1a1a', '#000000']} style={styles.container}>
-      <FlatList
-        data={games}
-        keyExtractor={(item) => item.id}
-        renderItem={renderGameCard}
-        numColumns={2}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-        columnWrapperStyle={styles.row}
-        ListHeaderComponent={() => (
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Brain Games</Text>
-            <Text style={styles.headerSubtitle}>Challenge yourself with fun puzzles</Text>
+    <LinearGradient colors={["#1a1a1a", "#000000"]} style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: "white" }]}>BrainBoost</Text>
+          <Text style={[styles.headerSubtitle, { color: "rgba(255,255,255,0.8)" }]}>Choose your challenge</Text>
+
+          {/* Search Bar */}
+          <LinearGradient colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]} style={styles.searchContainer}>
+            <Search size={20} color="rgba(255,255,255,0.6)" style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: "white" }]}
+              placeholder="Search games..."
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </LinearGradient>
+        </View>
+
+        {/* Categories */}
+        <View style={styles.categoriesSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+          >
+            {categories.map(renderCategoryButton)}
+          </ScrollView>
+        </View>
+
+        {/* Games Grid */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: "white" }]}>
+            {selectedCategory === "All" ? "All Games" : `${selectedCategory} Games`}
+          </Text>
+          <View style={styles.gamesGrid}>
+            {filteredGames.map((game) => (
+              <View key={game.id} style={styles.gameWrapper}>
+                {renderGameCard(game)}
+              </View>
+            ))}
           </View>
-        )}
-      />
+        </View>
+      </ScrollView>
     </LinearGradient>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContainer: {
+    paddingBottom: 100,
+  },
   header: {
-    padding: 24,
+    paddingHorizontal: screenPadding,
     paddingTop: 80,
-    paddingBottom: 32,
+    paddingBottom: 24,
   },
   headerTitle: {
     fontSize: 32,
-    fontWeight: '800',
-    color: 'white',
+    fontWeight: "800",
     marginBottom: 4,
     letterSpacing: -0.5,
-    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: '500',
+    fontWeight: "500",
+    marginBottom: 20,
   },
-  listContainer: {
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingVertical: 12,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  categoriesSection: {
+    marginBottom: 24,
+  },
+  categoriesContainer: {
+    paddingHorizontal: screenPadding,
+    paddingVertical: 8,
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 12,
+  },
+  selectedCategoryButton: {
+    backgroundColor: "#10b981",
+  },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    paddingHorizontal: screenPadding,
+    marginBottom: 16,
+  },
+  gamesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: screenPadding,
+    justifyContent: "space-between",
+  },
+  gameWrapper: {
+    marginBottom: 16,
   },
   cardContainer: {
     width: cardWidth,
-    marginBottom: 16,
   },
   card: {
-    borderRadius: 20,
-    padding: 20,
-    minHeight: 180,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    minHeight: 160,
   },
-  cardOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 20,
-  },
-  cardContent: {
-    flex: 1,
-    justifyContent: 'space-between',
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'black',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardBody: {
+    flex: 1,
+    marginBottom: 16,
   },
   gameName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: 'black',
+    fontSize: 16,
+    fontWeight: "700",
     marginBottom: 4,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   gameDescription: {
-    fontSize: 13,
-    color: 'black',
-    lineHeight: 18,
-    marginBottom: 16,
-    fontWeight: '500',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "500",
   },
   cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   difficultyBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 8,
   },
   difficultyText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#333',
-    textTransform: 'uppercase',
+    fontSize: 10,
+    fontWeight: "700",
+    color: "white",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
   playButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'black',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  separator: {
-    height: 0,
-  },
-  row: {
-    justifyContent: 'space-between',
-  },
-});
+})
