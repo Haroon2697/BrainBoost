@@ -65,8 +65,8 @@ const games = [
   },
   { 
     id: '7', 
-    name: 'Trivia', 
-    route: '/game/trivia' as const,
+    name: 'Minesweep', 
+    route: '/game/minesweep' as const,
     description: 'Answer questions across topics',
     icon: HelpCircle,
     gradient: ['#b0ecea', '#fecad3'] as const,
