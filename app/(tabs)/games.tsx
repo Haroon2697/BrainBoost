@@ -103,6 +103,8 @@ const games = [
     category: "Logic",
     rating: 4.2,
   },
+
+  
 ]
 
 const categories = ["All", "Word", "Memory", "Math", "Logic", "Speed", "Strategy"]

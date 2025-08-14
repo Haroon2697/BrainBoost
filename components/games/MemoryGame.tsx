@@ -3,6 +3,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useEffect, useRef, useState } from "react"
 import { Animated, Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { LinearGradient } from "expo-linear-gradient"
+
+// Local theme object to replace ThemeContext
+const theme = {
+  background: ["#1a1a1a", "#000000"] as const,
+  cardBackground: ["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"] as const,
+  accent: "#10b981",
+  text: "white",
+  textSecondary: "rgba(255,255,255,0.7)",
+  border: "rgba(255,255,255,0.1)",
+  success: "#4ade80",
+  warning: "#fbbf24",
+  error: "#ef4444",
+  isDark: true
+}
 
 const getFlashTime = (round: number) => {
   return Math.max(600 - (round - 1) * 20, 200)
@@ -88,8 +103,8 @@ export default function MemoryGame() {
   }
 
   const animateTile = (key: string) => {
-    if (difficulty === 'easy') return // Keep full grid animation for easy
-    
+    if (difficulty === "easy") return // Keep full grid animation for easy
+
     const tileAnim = tileAnimations[key]
     if (tileAnim) {
       Animated.sequence([
@@ -115,19 +130,19 @@ export default function MemoryGame() {
 
     if (correct.row === row && correct.col === col) {
       // Success animation - individual tile for medium/hard, full grid for easy
-      if (difficulty === 'easy') {
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start()
+      if (difficulty === "easy") {
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ]).start()
       } else {
         animateTile(key)
       }
@@ -137,14 +152,13 @@ export default function MemoryGame() {
 
       if (currentStep + 1 === sequence.length) {
         if (sequence.length >= maxRounds) {
-  setStatus("success")
-  if (sequence.length > highScore) {
-    await AsyncStorage.setItem("memoryGameHighScore", sequence.length.toString())
-    setHighScore(sequence.length)
-  }
-  return
-}
-
+          setStatus("success")
+          if (sequence.length > highScore) {
+            await AsyncStorage.setItem("memoryGameHighScore", sequence.length.toString())
+            setHighScore(sequence.length)
+          }
+          return
+        }
 
         const next = [...sequence, getRandomCoord()]
         setRound((prev) => prev + 1)
@@ -164,11 +178,10 @@ export default function MemoryGame() {
         setCurrentStep(0)
       } else {
         setStatus("fail")
-if (sequence.length > highScore) {
-  await AsyncStorage.setItem("memoryGameHighScore", sequence.length.toString())
-  setHighScore(sequence.length)
-}
-
+        if (sequence.length > highScore) {
+          await AsyncStorage.setItem("memoryGameHighScore", sequence.length.toString())
+          setHighScore(sequence.length)
+        }
       }
     }
   }
@@ -214,22 +227,22 @@ if (sequence.length > highScore) {
     const wasTapped = selectedTiles.includes(key)
     const tileAnim = tileAnimations[key]
 
-    if (difficulty === 'easy') {
-    return (
-      <TouchableOpacity
-        key={key}
-        onPress={() => handleTilePress(row, col)}
-        style={[
-          styles.tile,
-          { width: tileSize, height: tileSize },
-          isActive && styles.activeTile,
-          wasTapped && styles.tappedTile,
-        ]}
-        disabled={flashing}
-        activeOpacity={0.8}
-      >
-        {isActive && <View style={styles.glowEffect} />}
-      </TouchableOpacity>
+    if (difficulty === "easy") {
+      return (
+        <TouchableOpacity
+          key={key}
+          onPress={() => handleTilePress(row, col)}
+          style={[
+            styles.tile,
+            { width: tileSize, height: tileSize },
+            isActive && styles.activeTile,
+            wasTapped && styles.tappedTile,
+          ]}
+          disabled={flashing}
+          activeOpacity={0.8}
+        >
+          {isActive && <View style={styles.glowEffect} />}
+        </TouchableOpacity>
       )
     }
 
@@ -239,8 +252,8 @@ if (sequence.length > highScore) {
         key={key}
         style={[
           tileAnim && {
-            transform: [{ scale: tileAnim }]
-          }
+            transform: [{ scale: tileAnim }],
+          },
         ]}
       >
         <TouchableOpacity
@@ -285,131 +298,148 @@ if (sequence.length > highScore) {
 
   if (!difficulty) {
     return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#0f0f23" />
-        <View style={styles.menuContainer}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.mainTitle}>Memory Tiles</Text>
-            <Text style={styles.subtitle}>Test your memory with flashing tiles</Text>
-          </View>
+      <LinearGradient colors={theme.background} style={{ flex: 1 }}>
+        <View style={styles.container}>
+          <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.background[0]} />
+          <View style={styles.menuContainer}>
+            <View style={styles.titleContainer}>
+              <Text style={[styles.mainTitle, { color: theme.accent }]}>Memory Tiles</Text>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                Test your memory with flashing tiles
+              </Text>
+            </View>
 
-          <View style={styles.difficultyContainer}>
-            {renderDifficultyButton("easy", 3, 20, "#10b981", "🎯")}
-            {renderDifficultyButton("medium", 4, 40, "#f59e0b", "⚡")}
-            {renderDifficultyButton("hard", 5, 50, "#ef4444", "🔥")}
+            <View style={styles.difficultyContainer}>
+              {renderDifficultyButton("easy", 3, 20, theme.success, "🎯")}
+              {renderDifficultyButton("medium", 4, 40, theme.warning, "⚡")}
+              {renderDifficultyButton("hard", 5, 50, theme.error, "🔥")}
+            </View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
     )
   }
 
   const progress = Math.min(round / maxRounds, 1)
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#121212" />
+    <LinearGradient colors={theme.background} style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.background[0]} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        {/* Header with Back Button */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setDifficulty(null)} activeOpacity={0.8}>
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
-        <Text style={styles.gameTitle}>Memory Tiles</Text>
-          <View style={styles.placeholder} />
-        </View>
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Round</Text>
-            <Text style={styles.statValue}>
-              {round}/{maxRounds}
-            </Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Lives</Text>
-            <Text style={styles.statValue}>{"❤️".repeat(lives)}</Text>
-          </View>
-
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Best</Text>
-            <Text style={styles.statValue}>{highScore}</Text>
-          </View>
-        </View>
-
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <Animated.View
-            style={[
-              styles.progressBar,
-              {
-                width: progressAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ["0%", "100%"],
-                }),
-              },
-            ]}
-          />
-        </View>
-      </View>
-
-      {/* Game Grid */}
-      <Animated.View
-        style={[
-          styles.gameContainer,
-          {
-            transform: [{ translateX: shakeAnim }, { scale: pulseAnim }],
-          },
-        ]}
-      >
-        <View style={styles.grid}>
-          {Array.from({ length: gridSize }).map((_, row) => (
-            <View key={row} style={styles.row}>
-              {Array.from({ length: gridSize }).map((_, col) => renderTile(row, col))}
-            </View>
-          ))}
-        </View>
-      </Animated.View>
-
-      {/* Status Messages */}
-      <View style={styles.statusContainer}>
-        {status === "success" && (
-          <View style={styles.successContainer}>
-            <Text style={styles.successTitle}>🏆 Amazing!</Text>
-            <Text style={styles.successText}>You completed all {maxRounds} rounds!</Text>
-          </View>
-        )}
-
-        {status === "fail" && (
-          <View style={styles.failContainer}>
-            <Text style={styles.failTitle}>💥 Game Over</Text>
-            <Text style={styles.failText}>You reached round {round}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => resetGame(gridSize)} activeOpacity={0.8}>
-              <Text style={styles.retryButtonText}>🔄 Try Again</Text>
+        {/* Header */}
+        <View style={styles.header}>
+          {/* Header with Back Button */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={[styles.backButton, { backgroundColor: theme.cardBackground[0], borderColor: theme.border }]}
+              onPress={() => setDifficulty(null)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.backArrow, { color: theme.textSecondary }]}>←</Text>
             </TouchableOpacity>
+            <Text style={[styles.gameTitle, { color: theme.accent }]}>Memory Tiles</Text>
+            <View style={styles.placeholder} />
           </View>
-        )}
 
-        {status === "idle" && flashing && <Text style={styles.watchText}>👀 Watch the sequence...</Text>}
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={[styles.statItem, { backgroundColor: theme.cardBackground[0] }]}>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Round</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>
+                {round}/{maxRounds}
+              </Text>
+            </View>
 
-        {status === "playing" && (
-          <Text style={styles.playText}>
-            ✨ Repeat the sequence! ({currentStep + 1}/{sequence.length})
-          </Text>
-        )}
+            <View style={[styles.statItem, { backgroundColor: theme.cardBackground[0] }]}>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Lives</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{"❤️".repeat(lives)}</Text>
+            </View>
+
+            <View style={[styles.statItem, { backgroundColor: theme.cardBackground[0] }]}>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Best</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{highScore}</Text>
+            </View>
+          </View>
+
+          {/* Progress Bar */}
+          <View style={[styles.progressContainer, { backgroundColor: theme.cardBackground[0] }]}>
+            <Animated.View
+              style={[
+                styles.progressBar,
+                { backgroundColor: theme.accent },
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0%", "100%"],
+                  }),
+                },
+              ]}
+            />
+          </View>
+        </View>
+
+        {/* Game Grid */}
+        <Animated.View
+          style={[
+            styles.gameContainer,
+            {
+              transform: [{ translateX: shakeAnim }, { scale: pulseAnim }],
+            },
+          ]}
+        >
+          <View style={[styles.grid, { backgroundColor: theme.cardBackground[0] }]}>
+            {Array.from({ length: gridSize }).map((_, row) => (
+              <View key={row} style={styles.row}>
+                {Array.from({ length: gridSize }).map((_, col) => renderTile(row, col))}
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* Status Messages */}
+        <View style={styles.statusContainer}>
+          {status === "success" && (
+            <View style={styles.successContainer}>
+              <Text style={[styles.successTitle, { color: theme.success }]}>🏆 Amazing!</Text>
+              <Text style={[styles.successText, { color: theme.textSecondary }]}>
+                You completed all {maxRounds} rounds!
+              </Text>
+            </View>
+          )}
+
+          {status === "fail" && (
+            <View style={styles.failContainer}>
+              <Text style={[styles.failTitle, { color: theme.error }]}>💥 Game Over</Text>
+              <Text style={[styles.failText, { color: theme.textSecondary }]}>You reached round {round}</Text>
+              <TouchableOpacity
+                style={[styles.retryButton, { backgroundColor: theme.accent }]}
+                onPress={() => resetGame(gridSize)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.retryButtonText, { color: theme.text }]}>🔄 Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {status === "idle" && flashing && (
+            <Text style={[styles.watchText, { color: theme.accent }]}>👀 Watch the sequence...</Text>
+          )}
+
+          {status === "playing" && (
+            <Text style={[styles.playText, { color: theme.success }]}>
+              ✨ Repeat the sequence! ({currentStep + 1}/{sequence.length})
+            </Text>
+          )}
+        </View>
       </View>
-
-    </View>
+    </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#121212",
     paddingTop: 50,
   },
   menuContainer: {
@@ -425,13 +455,11 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 42,
     fontWeight: "bold",
-    color: "#4CAF50",
     textAlign: "center",
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: "#ccc",
     textAlign: "center",
   },
   difficultyContainer: {
@@ -478,14 +506,11 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#444",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1a1a1a",
   },
   backArrow: {
     fontSize: 24,
-    color: "#888",
   },
   placeholder: {
     width: 40,
@@ -493,7 +518,6 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#4CAF50",
     textAlign: "center",
     flex: 1,
   },
@@ -504,7 +528,6 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: "center",
-    backgroundColor: "#1a1a1a",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -512,23 +535,19 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: "#888",
     marginBottom: 4,
   },
   statValue: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#fff",
   },
   progressContainer: {
     height: 8,
-    backgroundColor: "#1a1a1a",
     borderRadius: 4,
     overflow: "hidden",
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#4CAF50",
     borderRadius: 4,
   },
   gameContainer: {
@@ -537,7 +556,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   grid: {
-    backgroundColor: "#1a1a1a",
     padding: 15,
     borderRadius: 20,
     shadowColor: "#000",
@@ -595,12 +613,10 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#10b981",
     marginBottom: 8,
   },
   successText: {
     fontSize: 16,
-    color: "#ccc",
     textAlign: "center",
   },
   failContainer: {
@@ -609,34 +625,28 @@ const styles = StyleSheet.create({
   failTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#ef4444",
     marginBottom: 8,
   },
   failText: {
     fontSize: 16,
-    color: "#ccc",
     textAlign: "center",
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: "#4CAF50",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   retryButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
   watchText: {
     fontSize: 18,
-    color: "#4CAF50",
     textAlign: "center",
   },
   playText: {
     fontSize: 18,
-    color: "#10b981",
     textAlign: "center",
   },
 })

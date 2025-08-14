@@ -7,7 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 export interface Theme {
   background: string[]
   cardBackground: string[]
-  textPrimary: string
+  text: string // Changed from textPrimary to text
   textSecondary: string
   accent: string
   border: string
@@ -15,12 +15,16 @@ export interface Theme {
   tabBarBackground: string
   tabBarActiveTint: string
   tabBarInactiveTint: string
+  success: string
+  error: string
+  warning: string
+  isDark: boolean // Added isDark property to theme object
 }
 
 const lightTheme: Theme = {
   background: ["#fef7ed", "#fed7aa"],
   cardBackground: ["rgba(0,0,0,0.05)", "rgba(0,0,0,0.02)"],
-  textPrimary: "#1a1a1a",
+  text: "#1a1a1a", // Changed from textPrimary to text
   textSecondary: "rgba(0,0,0,0.7)",
   accent: "#10b981",
   border: "rgba(0,0,0,0.1)",
@@ -28,12 +32,16 @@ const lightTheme: Theme = {
   tabBarBackground: "#ffffff",
   tabBarActiveTint: "#10b981",
   tabBarInactiveTint: "#6b7280",
+  success: "#22c55e",
+  error: "#ef4444",
+  warning: "#f59e0b",
+  isDark: false,
 }
 
 const darkTheme: Theme = {
   background: ["#1a1a1a", "#000000"],
   cardBackground: ["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"],
-  textPrimary: "#ffffff",
+  text: "#ffffff", // Changed from textPrimary to text
   textSecondary: "rgba(255,255,255,0.7)",
   accent: "#10b981",
   border: "rgba(255,255,255,0.1)",
@@ -41,6 +49,10 @@ const darkTheme: Theme = {
   tabBarBackground: "#1a1a1a",
   tabBarActiveTint: "#10b981",
   tabBarInactiveTint: "#6b7280",
+  success: "#22c55e",
+  error: "#ef4444",
+  warning: "#f59e0b",
+  isDark: true,
 }
 
 interface ThemeContextType {

@@ -1,19 +1,13 @@
-import { Creepster_400Regular, useFonts } from '@expo-google-fonts/creepster';
-import { FredokaOne_400Regular } from '@expo-google-fonts/fredoka-one';
-import { Picker } from '@react-native-picker/picker';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { Clock, Lightbulb, RotateCcw, Trophy } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
+"use client"
+
+import { Creepster_400Regular, useFonts } from "@expo-google-fonts/creepster"
+import { FredokaOne_400Regular } from "@expo-google-fonts/fredoka-one"
+import { Picker } from "@react-native-picker/picker"
+import { LinearGradient } from "expo-linear-gradient"
+import { useRouter } from "expo-router"
+import { Clock, Lightbulb, RotateCcw, Trophy } from "lucide-react-native"
+import { useEffect, useRef, useState } from "react"
+import { ActivityIndicator, Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -21,231 +15,234 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { fetchWord } from '../../utils/fetchWords';
+} from "react-native-reanimated"
+import { SafeAreaView } from "react-native-safe-area-context"
+import { fetchWord } from "../../utils/fetchWords"
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window")
 
 // Constants
-const MAX_GUESSES = 6;
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const hangmanStages = ['😊', '😐', '😕', '😟', '😰', '😵', '💀'];
-type Difficulty = 'easy' | 'medium' | 'hard';
+const MAX_GUESSES = 6
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
+const hangmanStages = ["😊", "😐", "😕", "😟", "😰", "😵", "💀"]
+type Difficulty = "easy" | "medium" | "hard"
 
 const difficultyColors = {
-  easy: ['#4ade80', '#22c55e'],
-  medium: ['#fbbf24', '#f59e0b'],
-  hard: ['#ef4444', '#dc2626'],
-};
+  easy: ["#4ade80", "#22c55e"],
+  medium: ["#fbbf24", "#f59e0b"],
+  hard: ["#ef4444", "#dc2626"],
+}
 
 export default function HangmanGame() {
-  const router = useRouter();
-  
+  const router = useRouter()
+
   // Load fonts
   const [fontsLoaded] = useFonts({
     Creepster_400Regular,
     FredokaOne_400Regular,
-  });
+  })
 
   // Game state
-  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
-  const [word, setWord] = useState('');
-  const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
-  const [wrongGuesses, setWrongGuesses] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [usedHint, setUsedHint] = useState(false);
-  const [timer, setTimer] = useState(0);
-  const [wins, setWins] = useState(0);
-  const [losses, setLosses] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy")
+  const [word, setWord] = useState("")
+  const [guessedLetters, setGuessedLetters] = useState<string[]>([])
+  const [wrongGuesses, setWrongGuesses] = useState(0)
+  const [gameOver, setGameOver] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [usedHint, setUsedHint] = useState(false)
+  const [timer, setTimer] = useState(0)
+  const [wins, setWins] = useState(0)
+  const [losses, setLosses] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Animation values
-  const hangmanScale = useSharedValue(1);
-  const wordShake = useSharedValue(0);
-  const keyboardOpacity = useSharedValue(1);
-  const gameOverScale = useSharedValue(0);
+  const hangmanScale = useSharedValue(1)
+  const wordShake = useSharedValue(0)
+  const keyboardOpacity = useSharedValue(1)
+  const gameOverScale = useSharedValue(0)
 
   // Animated styles
   const hangmanAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: hangmanScale.value }],
-  }));
+  }))
 
   const wordAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: wordShake.value }],
-  }));
+  }))
 
   const keyboardAnimatedStyle = useAnimatedStyle(() => ({
     opacity: keyboardOpacity.value,
-  }));
+  }))
 
   const gameOverAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: gameOverScale.value }],
     opacity: gameOverScale.value,
-  }));
+  }))
 
   // Animation functions
   const animateHangman = () => {
-    hangmanScale.value = withSequence(
-      withSpring(1.3, { damping: 8 }),
-      withSpring(1, { damping: 8 })
-    );
-  };
+    hangmanScale.value = withSequence(withSpring(1.3, { damping: 8 }), withSpring(1, { damping: 8 }))
+  }
 
   const animateWrongGuess = () => {
     wordShake.value = withSequence(
       withTiming(-10, { duration: 50 }),
       withTiming(10, { duration: 50 }),
       withTiming(-10, { duration: 50 }),
-      withTiming(0, { duration: 50 })
-    );
-  };
+      withTiming(0, { duration: 50 }),
+    )
+  }
 
   const animateGameOver = () => {
-    keyboardOpacity.value = withTiming(0.3, { duration: 300 });
-    gameOverScale.value = withSpring(1, { damping: 8 });
-  };
+    keyboardOpacity.value = withTiming(0.3, { duration: 300 })
+    gameOverScale.value = withSpring(1, { damping: 8 })
+  }
 
   const resetAnimations = () => {
-    keyboardOpacity.value = withTiming(1, { duration: 300 });
-    gameOverScale.value = withTiming(0, { duration: 200 });
-    wordShake.value = 0;
-    hangmanScale.value = 1;
-  };
+    keyboardOpacity.value = withTiming(1, { duration: 300 })
+    gameOverScale.value = withTiming(0, { duration: 200 })
+    wordShake.value = 0
+    hangmanScale.value = 1
+  }
 
   // Timer functions
   const startTimer = () => {
     timerRef.current = setInterval(() => {
-      setTimer((prev) => prev + 1);
-    }, 1000);
-  };
+      setTimer((prev) => prev + 1)
+    }, 1000)
+  }
 
   const stopTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-  };
+    if (timerRef.current) clearInterval(timerRef.current)
+  }
 
   // Load a new word
   const loadWord = async () => {
-    setLoading(true);
-    stopTimer();
-    resetAnimations();
+    setLoading(true)
+    stopTimer()
+    resetAnimations()
 
-    const newWord = await fetchWord(difficulty);
-    setWord(newWord.toUpperCase());
+    const newWord = await fetchWord(difficulty)
+    setWord(newWord.toUpperCase())
 
-    setGuessedLetters([]);
-    setWrongGuesses(0);
-    setGameOver(false);
-    setUsedHint(false);
-    setTimer(0);
+    setGuessedLetters([])
+    setWrongGuesses(0)
+    setGameOver(false)
+    setUsedHint(false)
+    setTimer(0)
 
-    setLoading(false);
-    startTimer();
-  };
+    setLoading(false)
+    startTimer()
+  }
 
   useEffect(() => {
-    loadWord();
-    return stopTimer;
-  }, [difficulty]);
+    loadWord()
+    return stopTimer
+  }, [difficulty])
 
   // Handle letter guesses
   const guessLetter = (letter: string) => {
-    if (guessedLetters.includes(letter) || gameOver) return;
+    if (guessedLetters.includes(letter) || gameOver) return
 
-    const updatedGuesses = [...guessedLetters, letter];
-    setGuessedLetters(updatedGuesses);
+    const updatedGuesses = [...guessedLetters, letter]
+    setGuessedLetters(updatedGuesses)
 
     if (!word.includes(letter)) {
-      const nextWrong = wrongGuesses + 1;
-      setWrongGuesses(nextWrong);
-      
+      const nextWrong = wrongGuesses + 1
+      setWrongGuesses(nextWrong)
+
       // Animate wrong guess
-      runOnJS(animateWrongGuess)();
-      runOnJS(animateHangman)();
+      runOnJS(animateWrongGuess)()
+      runOnJS(animateHangman)()
 
       if (nextWrong >= MAX_GUESSES) {
-        setGameOver(true);
-        setLosses((prev) => prev + 1);
-        stopTimer();
-        runOnJS(animateGameOver)();
+        setGameOver(true)
+        setLosses((prev) => prev + 1)
+        stopTimer()
+        runOnJS(animateGameOver)()
       }
     }
 
     // Check win
-    const allCorrect = word.split('').every((char) => updatedGuesses.includes(char));
+    const allCorrect = word.split("").every((char) => updatedGuesses.includes(char))
     if (allCorrect) {
-      setGameOver(true);
-      setWins((prev) => prev + 1);
-      stopTimer();
-      runOnJS(animateGameOver)();
+      setGameOver(true)
+      setWins((prev) => prev + 1)
+      stopTimer()
+      runOnJS(animateGameOver)()
     }
-  };
+  }
 
   // Use hint
   const useHint = () => {
-    if (usedHint || gameOver) return;
+    if (usedHint || gameOver) return
 
-    const unguessed = word.split('').filter((char) => !guessedLetters.includes(char));
-    if (unguessed.length === 0) return;
+    const unguessed = word.split("").filter((char) => !guessedLetters.includes(char))
+    if (unguessed.length === 0) return
 
-    const randomLetter = unguessed[Math.floor(Math.random() * unguessed.length)];
-    guessLetter(randomLetter);
-    setUsedHint(true);
-  };
+    const randomLetter = unguessed[Math.floor(Math.random() * unguessed.length)]
+    guessLetter(randomLetter)
+    setUsedHint(true)
+  }
 
   // Format timer
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, "0")}`
+  }
 
-  const isWin = word.split('').every((char) => guessedLetters.includes(char));
+  const isWin = word.split("").every((char) => guessedLetters.includes(char))
 
-  const displayWord = word.split('').map((char, index) => (
+  const displayWord = word.split("").map((char, index) => (
     <Animated.View key={index} style={styles.letterContainer}>
-      <Text style={[styles.letter, fontsLoaded && { fontFamily: 'FredokaOne_400Regular' }]}>
-        {guessedLetters.includes(char) ? char : '_'}
+      <Text
+        style={[
+          styles.letter,
+          fontsLoaded && { fontFamily: "FredokaOne_400Regular" },
+          { color: "#ffffff", borderBottomColor: "#ffffff" },
+        ]}
+      >
+        {guessedLetters.includes(char) ? char : "_"}
       </Text>
     </Animated.View>
-  ));
+  ))
 
   if (!fontsLoaded) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#667eea" />
+        <ActivityIndicator size="large" color="#4ade80" />
       </View>
-    );
+    )
   }
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={{ flex: 1 }}>
+    <LinearGradient colors={["#1a1a1a", "#2a2a2a"]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <StatusBar barStyle="light-content" />
-        
+
         {/* Stats Bar */}
-        <View style={styles.statsContainer}>
+        <View style={[styles.statsContainer, { backgroundColor: "#2a2a2a" }]}>
           <View style={styles.statItem}>
-            <Trophy size={20} color="#ffd700" />
-            <Text style={styles.statText}>{wins}</Text>
+            <Trophy size={20} color="#fbbf24" />
+            <Text style={[styles.statText, { color: "#ffffff" }]}>{wins}</Text>
           </View>
-          
+
           <View style={styles.statItem}>
             <Clock size={20} color="#ffffff" />
-            <Text style={styles.statText}>{formatTime(timer)}</Text>
+            <Text style={[styles.statText, { color: "#ffffff" }]}>{formatTime(timer)}</Text>
           </View>
-          
+
           <View style={styles.statItem}>
             <Text style={styles.statEmoji}>💀</Text>
-            <Text style={styles.statText}>{losses}</Text>
+            <Text style={[styles.statText, { color: "#ffffff" }]}>{losses}</Text>
           </View>
         </View>
 
         {/* Difficulty Selector */}
         <View style={styles.difficultyContainer}>
-          <Text style={styles.difficultyLabel}>Difficulty</Text>
-          <View style={styles.pickerContainer}>
+          <Text style={[styles.difficultyLabel, { color: "#ffffff" }]}>Difficulty</Text>
+          <View style={[styles.pickerContainer, { backgroundColor: "#2a2a2a" }]}>
             <Picker
               selectedValue={difficulty}
               onValueChange={(itemValue) => setDifficulty(itemValue as Difficulty)}
@@ -253,39 +250,37 @@ export default function HangmanGame() {
               dropdownIconColor="#ffffff"
               mode="dropdown"
             >
-              <Picker.Item label="Easy" value="easy" color="white" />
-              <Picker.Item label="Medium" value="medium" color="white" />
-              <Picker.Item label="Hard" value="hard" color="white" />
+              <Picker.Item label="Easy" value="easy" color="#ffffff" />
+              <Picker.Item label="Medium" value="medium" color="#ffffff" />
+              <Picker.Item label="Hard" value="hard" color="#ffffff" />
             </Picker>
           </View>
         </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="white" />
-            <Text style={styles.loadingText}>Loading new word...</Text>
+            <ActivityIndicator size="large" color="#4ade80" />
+            <Text style={[styles.loadingText, { color: "#ffffff" }]}>Loading new word...</Text>
           </View>
         ) : (
           <View style={styles.gameContainer}>
             {/* Hangman Display */}
             <Animated.View style={[styles.hangmanContainer, hangmanAnimatedStyle]}>
               <Text style={styles.hangman}>{hangmanStages[wrongGuesses]}</Text>
-              <Text style={styles.guessCounter}>
+              <Text style={[styles.guessCounter, { color: "#ffffff" }]}>
                 {wrongGuesses} / {MAX_GUESSES} wrong
               </Text>
             </Animated.View>
 
             {/* Word Display */}
-            <Animated.View style={[styles.wordContainer, wordAnimatedStyle]}>
-              {displayWord}
-            </Animated.View>
+            <Animated.View style={[styles.wordContainer, wordAnimatedStyle]}>{displayWord}</Animated.View>
 
             {/* Keyboard */}
             <Animated.View style={[styles.keyboardContainer, keyboardAnimatedStyle]}>
               <View style={styles.keyboard}>
                 {ALPHABET.map((letter) => {
-                  const isGuessed = guessedLetters.includes(letter);
-                  const isCorrect = word.includes(letter);
+                  const isGuessed = guessedLetters.includes(letter)
+                  const isCorrect = word.includes(letter)
                   return (
                     <TouchableOpacity
                       key={letter}
@@ -293,20 +288,18 @@ export default function HangmanGame() {
                       disabled={isGuessed || gameOver}
                       style={[
                         styles.key,
+                        { backgroundColor: "#2a2a2a" },
                         isGuessed && {
-                          backgroundColor: isCorrect ? '#22c55e' : '#ef4444',
+                          backgroundColor: isCorrect ? "#4ade80" : "#ef4444",
                           transform: [{ scale: 0.9 }],
                         },
                       ]}
                     >
-                      <Text style={[
-                        styles.keyText,
-                        isGuessed && { color: 'white' }
-                      ]}>
+                      <Text style={[styles.keyText, { color: "#ffffff" }, isGuessed && { color: "white" }]}>
                         {letter}
                       </Text>
                     </TouchableOpacity>
-                  );
+                  )
                 })}
               </View>
             </Animated.View>
@@ -315,39 +308,30 @@ export default function HangmanGame() {
             <TouchableOpacity
               style={[
                 styles.hintButton,
-                usedHint && styles.hintButtonDisabled
+                { backgroundColor: "#2a2a2a", borderColor: "#444444" },
+                usedHint && { backgroundColor: "#444444", borderColor: "#444444" },
               ]}
               onPress={useHint}
               disabled={usedHint || gameOver}
             >
-              <Lightbulb size={20} color={usedHint ? '#94a3b8' : '#fbbf24'} />
-              <Text style={[
-                styles.hintText,
-                usedHint && styles.hintTextDisabled
-              ]}>
-                {usedHint ? 'Hint Used' : 'Use Hint'}
+              <Lightbulb size={20} color={usedHint ? "#ffffff" : "#fbbf24"} />
+              <Text style={[styles.hintText, { color: "#ffffff" }, usedHint && { color: "#888888" }]}>
+                {usedHint ? "Hint Used" : "Use Hint"}
               </Text>
             </TouchableOpacity>
 
             {/* Game Over Overlay */}
             {gameOver && (
               <Animated.View style={[styles.gameOverContainer, gameOverAnimatedStyle]}>
-                <View style={styles.gameOverCard}>
-                  <Text style={styles.gameOverEmoji}>
-                    {isWin ? '🎉' : '💀'}
+                <View style={[styles.gameOverCard, { backgroundColor: "#2a2a2a" }]}>
+                  <Text style={styles.gameOverEmoji}>{isWin ? "🎉" : "💀"}</Text>
+                  <Text style={[styles.gameOverTitle, { color: "#ffffff" }]}>{isWin ? "Victory!" : "Game Over"}</Text>
+                  <Text style={[styles.gameOverSubtitle, { color: "#888888" }]}>
+                    {isWin ? `You solved it in ${formatTime(timer)}!` : `The word was: ${word}`}
                   </Text>
-                  <Text style={styles.gameOverTitle}>
-                    {isWin ? 'Victory!' : 'Game Over'}
-                  </Text>
-                  <Text style={styles.gameOverSubtitle}>
-                    {isWin 
-                      ? `You solved it in ${formatTime(timer)}!` 
-                      : `The word was: ${word}`
-                    }
-                  </Text>
-                  
+
                   <TouchableOpacity
-                    style={styles.playAgainButton}
+                    style={[styles.playAgainButton, { backgroundColor: "#4ade80" }]}
                     onPress={loadWord}
                   >
                     <RotateCcw size={20} color="white" />
@@ -360,7 +344,7 @@ export default function HangmanGame() {
         )}
       </SafeAreaView>
     </LinearGradient>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -368,13 +352,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
@@ -383,15 +367,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 28,
-    color: 'white',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.3)',
+    color: "white",
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
   },
@@ -399,67 +383,62 @@ const styles = StyleSheet.create({
     width: 40,
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     paddingHorizontal: 40,
     paddingVertical: 15,
     marginTop: 25,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     marginHorizontal: 20,
     borderRadius: 15,
     marginBottom: 20,
   },
   statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   statText: {
-    color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statEmoji: {
     fontSize: 20,
   },
   difficultyContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   difficultyLabel: {
-    color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
   },
   pickerContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     width: 150,
   },
   picker: {
     width: 150,
     height: 50,
-    color: 'white',
+    color: "white",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 16,
   },
   loadingText: {
-    color: 'white',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   gameContainer: {
     flex: 1,
     paddingHorizontal: 20,
   },
   hangmanContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 30,
   },
   hangman: {
@@ -467,15 +446,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   guessCounter: {
-    color: 'white',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     opacity: 0.9,
   },
   wordContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'nowrap',
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "nowrap",
     marginBottom: 40,
     paddingHorizontal: 10,
     minHeight: 50,
@@ -486,14 +464,12 @@ const styles = StyleSheet.create({
   },
   letter: {
     fontSize: 28,
-    color: 'white',
-    fontWeight: '700',
+    fontWeight: "700",
     width: 30,
-    textAlign: 'center',
+    textAlign: "center",
     borderBottomWidth: 3,
-    borderBottomColor: 'white',
     paddingBottom: 5,
-    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
@@ -501,19 +477,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   keyboard: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: 8,
   },
   key: {
     width: 35,
     height: 35,
-    backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -521,51 +496,39 @@ const styles = StyleSheet.create({
   },
   keyText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
+    fontWeight: "700",
   },
   hintButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 25,
-    alignSelf: 'center',
+    alignSelf: "center",
     gap: 8,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  hintButtonDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   hintText: {
-    color: 'white',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  hintTextDisabled: {
-    color: '#94a3b8',
+    fontWeight: "600",
   },
   gameOverContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 20,
   },
   gameOverCard: {
-    backgroundColor: 'white',
     borderRadius: 20,
     padding: 30,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -578,29 +541,26 @@ const styles = StyleSheet.create({
   },
   gameOverTitle: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#1e293b',
+    fontWeight: "800",
     marginBottom: 8,
   },
   gameOverSubtitle: {
     fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 25,
     lineHeight: 22,
   },
   playAgainButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#667eea',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 25,
     gap: 10,
   },
   playAgainText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
-});
+})
