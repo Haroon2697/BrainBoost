@@ -96,7 +96,9 @@ const NumberLinkGame = () => {
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+            },
             onPanResponderGrant: (e, gestureState) => {
                 const { locationX, locationY } = e.nativeEvent;
                 const r = Math.floor(locationY / CELL_SIZE);

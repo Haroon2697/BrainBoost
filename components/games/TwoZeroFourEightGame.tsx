@@ -155,20 +155,23 @@ const TwoZeroFourEightGame = () => {
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                // Only take over if movement is more than 10 pixels
+                return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
+            },
             onPanResponderRelease: (e, gestureState) => {
                 const { dx, dy } = gestureState;
                 const absX = Math.abs(dx);
                 const absY = Math.abs(dy);
 
-                if (Math.max(absX, absY) < 20) return; // Ignore small movements
+                if (Math.max(absX, absY) < 30) return; // Ignore small movements
 
                 if (absX > absY) {
-                    if (dx > 0) move('right');
-                    else move('left');
+                    if (dx > 30) move('right');
+                    else if (dx < -30) move('left');
                 } else {
-                    if (dy > 0) move('down');
-                    else move('up');
+                    if (dy > 30) move('down');
+                    else if (dy < -30) move('up');
                 }
             },
         })

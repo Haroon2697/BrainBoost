@@ -5,22 +5,22 @@ import Animated, {
     useAnimatedStyle,
     withTiming,
     withSpring,
-    withSequence,
     withDelay,
     Easing,
     runOnJS,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BrainCircuit } from 'lucide-react-native';
+import { Brain } from 'lucide-react-native';
 import { Theme } from '../../constants/Theme';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface CustomSplashScreenProps {
     onFinish: () => void;
 }
 
 const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish }) => {
+    console.log('CustomSplashScreen mounting...');
     const logoScale = useSharedValue(0);
     const logoOpacity = useSharedValue(0);
     const textOpacity = useSharedValue(0);
@@ -28,21 +28,19 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish }) => 
     const containerOpacity = useSharedValue(1);
 
     useEffect(() => {
-        // Start animation sequence
         logoScale.value = withDelay(300, withSpring(1.2, { damping: 10, stiffness: 100 }));
         logoOpacity.value = withDelay(300, withTiming(1, { duration: 800 }));
 
         textOpacity.value = withDelay(800, withTiming(1, { duration: 600 }));
-        textTranslateY.value = withDelay(800, withTiming(0, { duration: 600, easing: Easing.out(Easing.back(1)) }));
+        textTranslateY.value = withDelay(800, withTiming(0, { duration: 600 }));
 
-        // Finish splash after 2.5 seconds
         const timer = setTimeout(() => {
             containerOpacity.value = withTiming(0, { duration: 500 }, (finished) => {
                 if (finished) {
                     runOnJS(onFinish)();
                 }
             });
-        }, 2500);
+        }, 2800);
 
         return () => clearTimeout(timer);
     }, []);
@@ -61,22 +59,24 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish }) => 
         opacity: containerOpacity.value,
     }));
 
+    const colors = Theme?.colors?.gradients?.background || ['#0f172a', '#1e293b'];
+    const primaryGradients = Theme?.colors?.gradients?.primary || ['#6366f1', '#a855f7'];
+
     return (
         <Animated.View style={[styles.container, containerStyle]}>
             <LinearGradient
-                colors={Theme.colors.gradients.background}
+                colors={colors}
                 style={StyleSheet.absoluteFill}
             />
 
             <View style={styles.content}>
                 <Animated.View style={[styles.logoContainer, logoStyle]}>
                     <LinearGradient
-                        colors={Theme.colors.gradients.primary}
+                        colors={primaryGradients}
                         style={styles.logoGradient}
                     >
-                        <BrainCircuit size={60} color="white" />
+                        <Brain size={60} color="white" />
                     </LinearGradient>
-                    {/* Decorative glow */}
                     <View style={styles.glow} />
                 </Animated.View>
 
@@ -115,10 +115,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 20,
-        shadowColor: Theme.colors.primary,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
     },
     glow: {
         position: 'absolute',
@@ -127,7 +123,7 @@ const styles = StyleSheet.create({
         right: -20,
         bottom: -20,
         borderRadius: 50,
-        backgroundColor: Theme.colors.primary,
+        backgroundColor: Theme?.colors?.primary || '#6366f1',
         opacity: 0.15,
         zIndex: -1,
     },
@@ -137,13 +133,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 42,
         color: '#fff',
-        fontFamily: Theme.fonts.primary,
+        fontFamily: Theme?.fonts?.primary || 'System',
         letterSpacing: 1,
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        color: Theme.colors.textMuted,
+        color: Theme?.colors?.textMuted || '#94a3b8',
         fontWeight: '600',
         letterSpacing: 4,
         textTransform: 'uppercase',
