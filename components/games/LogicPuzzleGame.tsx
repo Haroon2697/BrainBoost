@@ -207,7 +207,7 @@ const LogicPuzzleGame = () => {
                     styles.optionButton,
                     feedback === 'correct' && opt === currentPuzzle.answer && styles.correctOption,
                     feedback === 'wrong' && opt !== currentPuzzle.answer && styles.wrongOption,
-                    pressed && { opacity: 0.7, scale: 0.98 }
+                    pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }
                   ]}
                   onPress={() => handleAnswer(opt)}
                 >

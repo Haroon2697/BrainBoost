@@ -240,7 +240,7 @@ export default function HangmanGame() {
                       backgroundColor: isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
                       borderColor: isCorrect ? Theme.colors.success : Theme.colors.error
                     },
-                    pressed && !isGuessed && { scale: 0.9, opacity: 0.7 }
+                    pressed && !isGuessed && { transform: [{ scale: 0.9 }], opacity: 0.7 }
                   ]}
                 >
                   <Text style={[styles.keyChar, isGuessed && { color: isCorrect ? Theme.colors.success : Theme.colors.error }]}>{letter}</Text>

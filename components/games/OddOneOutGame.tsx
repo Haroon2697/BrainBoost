@@ -176,7 +176,7 @@ function OddOneOutGame() {
                   key={i}
                   style={({ pressed }) => [
                     styles.optionCard,
-                    pressed && { scale: 0.98, opacity: 0.9 }
+                    pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 }
                   ]}
                   onPress={() => handleAnswer(item)}
                 >

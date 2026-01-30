@@ -174,7 +174,7 @@ const WordBuilderGame = () => {
               style={({ pressed }) => [
                 styles.letterTile,
                 selections.includes(i) && styles.tileUsed,
-                pressed && !selections.includes(i) && { scale: 0.95, opacity: 0.8 }
+                pressed && !selections.includes(i) && { transform: [{ scale: 0.95 }], opacity: 0.8 }
               ]}
               onPress={() => selectLetter(i)}
             >
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   tileUsed: {
     opacity: 0.2,
-    scale: 0.9,
+    transform: [{ scale: 0.9 }],
     backgroundColor: 'transparent',
     borderColor: 'rgba(255,255,255,0.05)',
   },

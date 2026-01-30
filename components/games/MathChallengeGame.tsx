@@ -219,7 +219,7 @@ const MathChallengeGame = () => {
                     styles.optionButton,
                     feedback === 'correct' && opt === currentQuestion.answer && styles.correctOption,
                     feedback === 'wrong' && opt !== currentQuestion.answer && styles.wrongOption,
-                    pressed && { opacity: 0.7, scale: 0.98 }
+                    pressed && { opacity: 0.7, transform: [{ scale: 0.98 }] }
                   ]}
                   onPress={() => handleAnswer(opt)}
                 >

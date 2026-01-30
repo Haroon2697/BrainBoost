@@ -30,7 +30,7 @@ import Animated, {
     withSpring,
     withSequence,
     withTiming,
-    FadeInScale
+    ZoomIn
 } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -104,7 +104,7 @@ const TicTacToeGame = () => {
             >
                 <LinearGradient colors={Theme.colors.gradients.glass} style={StyleSheet.absoluteFill} />
                 {board[i] && (
-                    <Animated.View entering={FadeInScale} style={styles.markContainer}>
+                    <Animated.View entering={ZoomIn} style={styles.markContainer}>
                         <Text style={[
                             styles.markText,
                             board[i] === 'X' ? styles.xText : styles.oText
