@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/Theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Play,
   RotateCcw,
@@ -34,6 +35,7 @@ const WORD_LIST = [
 ];
 
 const WordBuilderGame = () => {
+  const insets = useSafeAreaInsets();
   const [gameState, setGameState] = useState<'start' | 'playing' | 'gameOver'>('start');
   const [currentWord, setCurrentWord] = useState('');
   const [scrambled, setScrambled] = useState<string[]>([]);
@@ -131,6 +133,7 @@ const WordBuilderGame = () => {
           </LinearGradient>
         </Pressable>
       </LinearGradient>
+      <View style={{ height: insets.bottom }} />
     </View>
   );
 
@@ -230,6 +233,7 @@ const WordBuilderGame = () => {
           </Pressable>
         </View>
       </LinearGradient>
+      <View style={{ height: insets.bottom }} />
     </View>
   );
 
