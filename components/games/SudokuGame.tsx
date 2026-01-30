@@ -190,9 +190,17 @@ const SudokuGame = () => {
 
                     <View style={styles.diffList}>
                         {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map(d => (
-                            <Pressable key={d} onPress={() => setDifficulty(d)}>
-                                <LinearGradient colors={difficulty === d ? Theme.colors.gradients.primary : Theme.colors.gradients.glass} style={styles.diffCard}>
-                                    <Text style={[styles.diffLabel, difficulty === d && { color: 'white' }]}>{d}</Text>
+                            <Pressable key={d} onPress={() => setDifficulty(d)} style={styles.diffButton}>
+                                <LinearGradient
+                                    colors={difficulty === d ? Theme.colors.gradients.primary : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']}
+                                    style={styles.diffCard}
+                                >
+                                    <Text style={[
+                                        styles.diffLabel,
+                                        difficulty === d ? { color: 'white' } : { color: 'rgba(255,255,255,0.7)' }
+                                    ]}>
+                                        {d}
+                                    </Text>
                                 </LinearGradient>
                             </Pressable>
                         ))}
@@ -323,14 +331,16 @@ const styles = StyleSheet.create({
         gap: 12,
         marginBottom: 32,
     },
-    diffCard: {
+    diffButton: {
         flex: 1,
-        paddingVertical: 16,
+    },
+    diffCard: {
+        paddingVertical: 14,
         borderRadius: 16,
         alignItems: 'center',
+        justifyContent: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        minWidth: 80,
     },
     diffLabel: {
         color: Theme.colors.textMuted,
