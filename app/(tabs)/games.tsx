@@ -1,7 +1,6 @@
-"use client"
-
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
+import { Theme } from "@/constants/Theme"
 import {
   Brain,
   Calculator,
@@ -14,8 +13,9 @@ import {
   Zap,
   Search,
   Star,
+  ChevronRight,
 } from "lucide-react-native"
-import { Dimensions, Pressable, StyleSheet, Text, View, TextInput, ScrollView } from "react-native"
+import { Dimensions, Pressable, StyleSheet, Text, View, TextInput, ScrollView, SafeAreaView, StatusBar } from "react-native"
 import { useState } from "react"
 const { width } = Dimensions.get("window")
 const screenPadding = 24
@@ -104,7 +104,7 @@ const games = [
     rating: 4.2,
   },
 
-  
+
 ]
 
 const categories = ["All", "Word", "Memory", "Math", "Logic", "Speed", "Strategy"]

@@ -46,9 +46,7 @@
       }
     },
     "owner": "haroon295",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/a3ce7c22-2d05-470d-bf62-5522e97003bd"
     }
