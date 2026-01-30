@@ -16,6 +16,8 @@ import {
   ChevronRight,
   Clock,
   Trophy,
+  Grid3X3,
+  Hash,
 } from "lucide-react-native"
 import { Dimensions, Pressable, StyleSheet, Text, View, TextInput, ScrollView, SafeAreaView, StatusBar, ImageBackground } from "react-native"
 import { useState, useMemo } from "react"
@@ -121,6 +123,30 @@ const games = [
     color: "#3b82f6",
     rating: 4.7,
     time: "1.5m",
+  },
+  {
+    id: "9",
+    name: "Sudoku",
+    description: "Number Logic Puzzle",
+    icon: Grid3X3,
+    route: "/game/sudoku",
+    category: "Logic",
+    difficulty: "Medium",
+    color: "#6366f1",
+    rating: 4.9,
+    time: "No Limit",
+  },
+  {
+    id: "10",
+    name: "Tic Tac Toe",
+    description: "Strategy Arena",
+    icon: Hash,
+    route: "/game/tic-tac-toe",
+    category: "Logic",
+    difficulty: "Easy",
+    color: "#ec4899",
+    rating: 4.6,
+    time: "No Limit",
   },
 ]
 
