@@ -34,11 +34,11 @@ export default function HomeScreen() {
               <Text style={styles.welcomeText}>Welcome back,</Text>
               <Text style={styles.userName}>Haroon</Text>
             </View>
-            <Pressable style={styles.profileBadge}>
-              <LinearGradient colors={Theme.colors.gradients.primary} style={styles.badgeGradient}>
+            <View style={styles.profileBadge}>
+              <LinearGradient colors={Theme.colors.gradients.secondary} style={styles.badgeGradient}>
                 <Trophy size={16} color="white" />
               </LinearGradient>
-            </Pressable>
+            </View>
           </View>
 
           <LinearGradient colors={Theme.colors.gradients.glass} style={styles.heroCard}>
