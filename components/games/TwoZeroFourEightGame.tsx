@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/Theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Play,
     RotateCcw,
@@ -48,6 +49,7 @@ const tileColors: { [key: number]: string } = {
 };
 
 const TwoZeroFourEightGame = () => {
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const [grid, setGrid] = useState<Grid>(Array(4).fill(null).map(() => Array(4).fill(0)));
     const [score, setScore] = useState(0);
@@ -223,6 +225,7 @@ const TwoZeroFourEightGame = () => {
                         <Text style={styles.backText}>Return to HQ</Text>
                     </Pressable>
                 </SafeAreaView>
+                <View style={{ height: insets.bottom }} />
             </View>
         );
     }
@@ -291,6 +294,7 @@ const TwoZeroFourEightGame = () => {
                         </LinearGradient>
                     </View>
                 )}
+                <View style={{ height: insets.bottom }} />
             </SafeAreaView>
         </View>
     );

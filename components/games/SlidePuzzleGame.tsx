@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/Theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Play,
     RotateCcw,
@@ -28,6 +29,7 @@ const BOARD_SIZE = width - 48;
 const CELL_SIZE = (BOARD_SIZE - 20) / GRID_SIZE;
 
 const SlidePuzzleGame = () => {
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const [board, setBoard] = useState<number[]>([]);
     const [moves, setMoves] = useState(0);
@@ -127,6 +129,7 @@ const SlidePuzzleGame = () => {
                         <Text style={styles.backText}>Return to HQ</Text>
                     </Pressable>
                 </SafeAreaView>
+                <View style={{ height: insets.bottom }} />
             </View>
         );
     }
@@ -206,6 +209,7 @@ const SlidePuzzleGame = () => {
                         </LinearGradient>
                     </View>
                 )}
+                <View style={{ height: insets.bottom }} />
             </SafeAreaView>
         </View>
     );

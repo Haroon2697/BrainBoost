@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/Theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Play,
     RotateCcw,
@@ -42,6 +43,7 @@ interface Point {
 }
 
 const NumberLinkGame = () => {
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const [board, setBoard] = useState<(number | null)[][]>([]);
     const [paths, setPaths] = useState<{ [key: number]: Point[] }>({});
@@ -225,6 +227,7 @@ const NumberLinkGame = () => {
                         <Text style={styles.backText}>Return to HQ</Text>
                     </Pressable>
                 </SafeAreaView>
+                <View style={{ height: insets.bottom }} />
             </View>
         );
     }
@@ -286,6 +289,7 @@ const NumberLinkGame = () => {
                         </LinearGradient>
                     </View>
                 )}
+                <View style={{ height: insets.bottom }} />
             </SafeAreaView>
         </View>
     );

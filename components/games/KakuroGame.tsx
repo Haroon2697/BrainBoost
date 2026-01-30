@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/Theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Play,
     RotateCcw,
@@ -37,6 +38,7 @@ interface Cell {
 }
 
 const KakuroGame = () => {
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const [board, setBoard] = useState<Cell[][]>([]);
     const [gameState, setGameState] = useState<'start' | 'playing' | 'gameOver'>('start');
@@ -150,6 +152,7 @@ const KakuroGame = () => {
                         <Text style={styles.backText}>Return to HQ</Text>
                     </Pressable>
                 </SafeAreaView>
+                <View style={{ height: insets.bottom }} />
             </View>
         );
     }
@@ -244,6 +247,7 @@ const KakuroGame = () => {
                         </LinearGradient>
                     </View>
                 )}
+                <View style={{ height: insets.bottom }} />
             </SafeAreaView>
         </View>
     );
