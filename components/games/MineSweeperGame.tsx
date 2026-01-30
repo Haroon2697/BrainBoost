@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, ScrollView, SafeAreaView, Vibration } from "react-native"
+import { View, Text, StyleSheet, Dimensions, ScrollView, Pressable, Vibration } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { Theme } from "../../constants/Theme"
-import { Flag, Bomb, RotateCcw, ChevronLeft, Timer, Target } from "lucide-react-native"
+import { Flag, Bomb, RotateCcw, ChevronLeft, Timer, Target, Zap, Home, Trophy } from "lucide-react-native"
+import { useRouter } from "expo-router"
 
 const { width } = Dimensions.get("window")
 
@@ -16,13 +18,14 @@ interface Cell {
 }
 
 const DIFFICULTY_CONFIGS = {
-  Easy: { rows: 8, cols: 8, mines: 10 },
-  Medium: { rows: 12, cols: 9, mines: 25 },
-  Hard: { rows: 15, cols: 10, mines: 45 },
+  Easy: { rows: 8, cols: 8, mines: 10, label: 'Novice' },
+  Medium: { rows: 12, cols: 9, mines: 25, label: 'Expert' },
+  Hard: { rows: 15, cols: 10, mines: 45, label: 'Master' },
 }
 
 const MineSweeperGame = () => {
-  const [difficulty, setDifficulty] = useState<keyof typeof DIFFICULTY_CONFIGS>("Easy")
+  const router = useRouter()
+  const [difficulty, setDifficulty] = useState<keyof typeof DIFFICULTY_CONFIGS | null>(null)
   const [board, setBoard] = useState<Cell[][]>([])
   const [gameOver, setGameOver] = useState(false)
   const [gameWon, setGameWon] = useState(false)
@@ -30,8 +33,9 @@ const MineSweeperGame = () => {
   const [time, setTime] = useState(0)
   const [isActive, setIsActive] = useState(false)
 
-  const initBoard = useCallback(() => {
-    const { rows, cols, mines } = DIFFICULTY_CONFIGS[difficulty]
+  const initBoard = useCallback((diffKey?: keyof typeof DIFFICULTY_CONFIGS) => {
+    const activeDiff = diffKey || difficulty || 'Easy'
+    const { rows, cols, mines } = DIFFICULTY_CONFIGS[activeDiff]
     let newBoard: Cell[][] = Array(rows).fill(null).map(() =>
       Array(cols).fill(null).map(() => ({
         isMine: false,
@@ -75,8 +79,6 @@ const MineSweeperGame = () => {
     setIsActive(false)
   }, [difficulty])
 
-  useEffect(() => { initBoard() }, [initBoard])
-
   useEffect(() => {
     let interval: any
     if (isActive && !gameOver && !gameWon) {
@@ -112,7 +114,7 @@ const MineSweeperGame = () => {
     floodFill(r, c)
     setBoard(newBoard)
 
-    const { rows, cols, mines } = DIFFICULTY_CONFIGS[difficulty]
+    const { rows, cols, mines } = DIFFICULTY_CONFIGS[difficulty || 'Easy']
     const revealedCount = newBoard.flat().filter(cell => cell.isRevealed).length
     if (revealedCount === rows * cols - mines) {
       setGameWon(true)
@@ -128,67 +130,92 @@ const MineSweeperGame = () => {
     setMinesLeft(prev => newBoard[r][c].isFlagged ? prev - 1 : prev + 1)
   }
 
-  const renderCell = (r: number, c: number) => {
-    const cell = board[r][c]
+  if (!difficulty) {
     return (
-      <TouchableOpacity
-        key={`${r}-${c}`}
-        onPress={() => revealCell(r, c)}
-        onLongPress={() => toggleFlag(r, c)}
-        style={[
-          styles.cell,
-          cell.isRevealed && styles.cellRevealed,
-          gameOver && cell.isMine && styles.cellMine,
-        ]}
-      >
-        {cell.isRevealed ? (
-          cell.neighborMines > 0 ? (
-            <Text style={[styles.cellText, { color: getNumberColor(cell.neighborMines) }]}>{cell.neighborMines}</Text>
-          ) : null
-        ) : cell.isFlagged ? (
-          <Flag size={14} color={Theme.colors.secondary} fill={Theme.colors.secondary} />
-        ) : gameOver && cell.isMine ? (
-          <Bomb size={16} color="#fff" />
-        ) : null}
-      </TouchableOpacity>
+      <View style={styles.container}>
+        <LinearGradient colors={Theme.colors.gradients.background} style={StyleSheet.absoluteFill} />
+        <SafeAreaView style={styles.content}>
+          <View style={styles.iconCircle}>
+            <Bomb size={40} color={Theme.colors.primary} />
+          </View>
+          <Text style={styles.gameTitle}>MineSweeper</Text>
+          <Text style={styles.gameDesc}>Clear the minefield without detonating any bombs. Logic and patience are keys to survival.</Text>
+
+          <View style={styles.diffList}>
+            {(['Easy', 'Medium', 'Hard'] as const).map(d => (
+              <Pressable key={d} onPress={() => { setDifficulty(d); initBoard(d); }}>
+                <LinearGradient colors={Theme.colors.gradients.glass} style={styles.diffCard}>
+                  <View style={[styles.diffIcon, { backgroundColor: d === 'Easy' ? `${Theme.colors.success}20` : d === 'Medium' ? `${Theme.colors.warning}20` : `${Theme.colors.error}20` }]}>
+                    <Zap size={20} color={d === 'Easy' ? Theme.colors.success : d === 'Medium' ? Theme.colors.warning : Theme.colors.error} />
+                  </View>
+                  <View style={styles.diffInfo}>
+                    <Text style={styles.diffLabel}>{DIFFICULTY_CONFIGS[d].label}</Text>
+                    <Text style={styles.diffSub}>{DIFFICULTY_CONFIGS[d].rows}x{DIFFICULTY_CONFIGS[d].cols} • {DIFFICULTY_CONFIGS[d].mines} Mines</Text>
+                  </View>
+                  <ChevronLeft size={20} color={Theme.colors.textMuted} style={{ transform: [{ rotate: '180deg' }] }} />
+                </LinearGradient>
+              </Pressable>
+            ))}
+          </View>
+
+          <Pressable style={styles.backToTraining} onPress={() => router.back()}>
+            <Text style={styles.backText}>Return to HQ</Text>
+          </Pressable>
+        </SafeAreaView>
+      </View>
     )
   }
 
-  const getNumberColor = (num: number) => {
-    const colors = ['#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#71717a']
-    return colors[num - 1] || '#fff'
-  }
-
   return (
-    <LinearGradient colors={Theme.colors.gradients.background as any} style={styles.container}>
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => { }} style={styles.iconBtn}><ChevronLeft size={24} color="#fff" /></TouchableOpacity>
-          <View style={styles.statGroup}>
-            <Target size={18} color={Theme.colors.secondary} />
-            <Text style={styles.statText}>{minesLeft}</Text>
+    <View style={styles.container}>
+      <LinearGradient colors={Theme.colors.gradients.background} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={styles.gameSafe}>
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => setDifficulty(null)} style={styles.backButton}>
+            <Home size={20} color={Theme.colors.textMuted} />
+          </Pressable>
+          <View style={styles.statList}>
+            <View style={styles.statBadge}>
+              <Target size={16} color={Theme.colors.secondary} />
+              <Text style={styles.statText}>{minesLeft}</Text>
+            </View>
+            <View style={[styles.statBadge, { borderColor: Theme.colors.accent }]}>
+              <Timer size={16} color={Theme.colors.accent} />
+              <Text style={styles.statText}>{time}s</Text>
+            </View>
           </View>
-          <View style={styles.statGroup}>
-            <Timer size={18} color={Theme.colors.accent} />
-            <Text style={styles.statText}>{time}s</Text>
-          </View>
-          <TouchableOpacity onPress={initBoard} style={styles.iconBtn}><RotateCcw size={24} color="#fff" /></TouchableOpacity>
+          <Pressable style={styles.backButton} onPress={() => initBoard()}>
+            <RotateCcw size={20} color={Theme.colors.textMuted} />
+          </Pressable>
         </View>
 
-        <View style={styles.difficultyBar}>
-          {(['Easy', 'Medium', 'Hard'] as const).map(d => (
-            <TouchableOpacity key={d} onPress={() => setDifficulty(d)} style={[styles.diffBtn, difficulty === d && styles.diffBtnActive]}>
-              <Text style={[styles.diffText, difficulty === d && styles.diffTextActive]}>{d}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <ScrollView contentContainerStyle={styles.boardScroll} horizontal={false}>
-          <ScrollView horizontal>
+        <ScrollView contentContainerStyle={styles.boardContainer} showsVerticalScrollIndicator={false}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.boardHorizontal}>
             <View style={styles.board}>
               {board.map((row, r) => (
                 <View key={r} style={styles.row}>
-                  {row.map((_, c) => renderCell(r, c))}
+                  {row.map((cell, c) => (
+                    <Pressable
+                      key={`${r}-${c}`}
+                      onPress={() => revealCell(r, c)}
+                      onLongPress={() => toggleFlag(r, c)}
+                      style={[
+                        styles.cell,
+                        cell.isRevealed && styles.cellRevealed,
+                        gameOver && cell.isMine && styles.cellMine,
+                      ]}
+                    >
+                      {cell.isRevealed ? (
+                        cell.neighborMines > 0 ? (
+                          <Text style={[styles.cellText, { color: getNumberColor(cell.neighborMines) }]}>{cell.neighborMines}</Text>
+                        ) : null
+                      ) : cell.isFlagged ? (
+                        <Flag size={14} color={Theme.colors.secondary} fill={Theme.colors.secondary} />
+                      ) : gameOver && cell.isMine ? (
+                        <Bomb size={16} color="#fff" />
+                      ) : null}
+                    </Pressable>
+                  ))}
                 </View>
               ))}
             </View>
@@ -197,51 +224,274 @@ const MineSweeperGame = () => {
 
         {(gameOver || gameWon) && (
           <View style={styles.overlay}>
-            <View style={styles.resultCard}>
-              <Text style={[styles.resultTitle, { color: gameWon ? Theme.colors.success : Theme.colors.error }]}>
-                {gameWon ? "AREA CLEARED!" : "MISSION FAILED"}
+            <LinearGradient colors={Theme.colors.gradients.glass} style={styles.gameOverCard}>
+              <Trophy size={60} color={gameWon ? Theme.colors.success : Theme.colors.error} />
+              <Text style={[styles.overTitle, { color: gameWon ? Theme.colors.success : '#fff' }]}>
+                {gameWon ? 'AREA SECURED' : 'DETONATED'}
               </Text>
-              <Text style={styles.resultStats}>Time taken: {time}s</Text>
-              <TouchableOpacity style={styles.mainBtn} onPress={initBoard}>
-                <RotateCcw size={20} color="#fff" />
-                <Text style={styles.mainBtnText}>TRY AGAIN</Text>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.resultDetails}>
+                <View style={styles.resultItem}>
+                  <Text style={styles.resultLabel}>TIME</Text>
+                  <Text style={styles.resultValue}>{time}s</Text>
+                </View>
+                <View style={styles.resultItem}>
+                  <Text style={styles.resultLabel}>DIFF</Text>
+                  <Text style={styles.resultValue}>{difficulty}</Text>
+                </View>
+              </View>
+
+              <View style={styles.overActions}>
+                <Pressable style={styles.mainButton} onPress={() => initBoard()}>
+                  <LinearGradient colors={Theme.colors.gradients.primary} style={styles.buttonGradient}>
+                    <RotateCcw size={18} color="white" />
+                    <Text style={styles.buttonText}>Deploy Again</Text>
+                  </LinearGradient>
+                </Pressable>
+                <Pressable style={styles.secondaryButton} onPress={() => setDifficulty(null)}>
+                  <Text style={styles.secondaryButtonText}>Difficulty Menu</Text>
+                </Pressable>
+              </View>
+            </LinearGradient>
           </View>
         )}
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   )
+}
+
+const getNumberColor = (num: number) => {
+  const colors = ['#6366f1', '#10b981', '#f43f5e', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#94a3b8']
+  return colors[num - 1] || '#fff'
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1, padding: 15 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  iconBtn: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 12 },
-  statGroup: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Theme.colors.card, paddingVertical: 8, paddingHorizontal: 15, borderRadius: 15 },
-  statText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
-
-  difficultyBar: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 20 },
-  diffBtn: { paddingVertical: 8, paddingHorizontal: 20, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  diffBtnActive: { backgroundColor: Theme.colors.primary, borderColor: 'transparent' },
-  diffText: { color: Theme.colors.textMuted, fontWeight: 'bold' },
-  diffTextActive: { color: '#fff' },
-
-  boardScroll: { alignItems: 'center', justifyContent: 'center', padding: 10 },
-  board: { backgroundColor: 'rgba(0,0,0,0.2)', padding: 10, borderRadius: 15, borderWidth: 2, borderColor: 'rgba(255,255,255,0.05)' },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  gameTitle: {
+    fontSize: 32,
+    color: Theme.colors.text,
+    fontFamily: Theme.fonts.primary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  gameDesc: {
+    fontSize: 16,
+    color: Theme.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  diffList: {
+    width: '100%',
+    gap: 16,
+    marginBottom: 40,
+  },
+  diffCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  diffIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  diffInfo: {
+    flex: 1,
+  },
+  diffLabel: {
+    fontSize: 18,
+    color: Theme.colors.text,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  diffSub: {
+    fontSize: 12,
+    color: Theme.colors.textMuted,
+    fontWeight: '600',
+  },
+  backToTraining: {
+    padding: 16,
+  },
+  backText: {
+    fontSize: 14,
+    color: Theme.colors.textMuted,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  gameSafe: {
+    flex: 1,
+    padding: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    marginBottom: 24,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statList: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  statText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '800',
+  },
+  boardContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+  },
+  boardHorizontal: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  board: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    padding: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
   row: { flexDirection: 'row' },
-  cell: { width: 32, height: 32, backgroundColor: Theme.colors.card, margin: 1, borderRadius: 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  cellRevealed: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.02)' },
-  cellMine: { backgroundColor: Theme.colors.error },
-  cellText: { fontSize: 16, fontWeight: 'bold' },
-
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
-  resultCard: { backgroundColor: Theme.colors.card, padding: 40, borderRadius: 32, alignItems: 'center', width: '80%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  resultTitle: { fontSize: 24, fontWeight: '900', marginBottom: 10 },
-  resultStats: { color: Theme.colors.textMuted, marginBottom: 30 },
-  mainBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Theme.colors.primary, paddingVertical: 15, paddingHorizontal: 30, borderRadius: 15 },
-  mainBtnText: { color: '#fff', fontWeight: 'bold' },
+  cell: {
+    width: 32,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    margin: 1,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.03)',
+  },
+  cellRevealed: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderColor: 'rgba(255,255,255,0.01)',
+  },
+  cellMine: {
+    backgroundColor: Theme.colors.error,
+    borderColor: '#fff',
+  },
+  cellText: { fontSize: 16, fontWeight: '900' },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 15, 30, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 1000,
+  },
+  gameOverCard: {
+    width: '100%',
+    padding: 32,
+    borderRadius: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  overTitle: {
+    fontSize: 28,
+    color: '#fff',
+    fontFamily: Theme.fonts.primary,
+    marginVertical: 20,
+    textAlign: 'center',
+  },
+  resultDetails: {
+    flexDirection: 'row',
+    gap: 32,
+    marginBottom: 32,
+  },
+  resultItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  resultLabel: {
+    fontSize: 10,
+    color: Theme.colors.textMuted,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  resultValue: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: '900',
+  },
+  overActions: {
+    width: '100%',
+    gap: 12,
+  },
+  mainButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  secondaryButton: {
+    width: '100%',
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    color: Theme.colors.textMuted,
+    fontWeight: '700',
+  },
 })
 
 export default MineSweeperGame

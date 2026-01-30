@@ -5,9 +5,10 @@ import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
-import { Animated, Dimensions, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Animated, Dimensions, StyleSheet, Text, Pressable, View } from "react-native"
 import { Theme } from "../../constants/Theme"
-import { Brain, RotateCcw, ChevronLeft, Target, Zap, Clock, Trophy } from "lucide-react-native"
+import { Brain, RotateCcw, ChevronLeft, Target, Zap, Clock, Trophy, Home, Play } from "lucide-react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 const { width } = Dimensions.get("window")
 
@@ -52,7 +53,7 @@ const QUESTION_DATABASE: GameQuestion[] = [
   }
 ];
 
-export default function OddOneOutGame() {
+function OddOneOutGame() {
   const router = useRouter()
   const [gameState, setGameState] = useState<"idle" | "playing" | "result">("idle")
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null)
@@ -86,6 +87,7 @@ export default function OddOneOutGame() {
     setScore(0)
     setTimeLeft(30)
     startNextQuestion()
+    if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
@@ -117,112 +119,345 @@ export default function OddOneOutGame() {
     return () => clearInterval(timerRef.current)
   }, [gameState])
 
-  if (gameState === "idle") {
-    return (
-      <LinearGradient colors={Theme.colors.gradients.background} style={styles.container}>
-        <SafeAreaView style={styles.safe}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}><ChevronLeft size={24} color="#fff" /></TouchableOpacity>
-          <View style={styles.menu}>
-            <Target size={100} color={Theme.colors.secondary} />
-            <Text style={styles.menuTitle}>Odd One Out</Text>
-            <Text style={styles.menuSubtitle}>Find the imposter among items!</Text>
-            <View style={styles.scoreRow}>
-              <Trophy size={20} color={Theme.colors.warning} />
-              <Text style={styles.highScoreText}>Best: {highScore}</Text>
-            </View>
-            <TouchableOpacity style={styles.startBtn} onPress={startGame}>
-              <Play size={24} color="#fff" fill="#fff" />
-              <Text style={styles.startBtnText}>START MISSION</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-    )
-  }
+  const renderIdle = () => (
+    <View style={styles.content}>
+      <LinearGradient colors={Theme.colors.gradients.glass} style={styles.gameCard}>
+        <View style={styles.iconCircle}>
+          <Target size={40} color={Theme.colors.secondary} />
+        </View>
+        <Text style={styles.gameTitle}>Odd One Out</Text>
+        <Text style={styles.gameDesc}>Sharp detection is required. Identify the item that doesn't belong in the group as fast as possible!</Text>
 
-  return (
-    <LinearGradient colors={Theme.colors.gradients.background} style={styles.container}>
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.gameHeader}>
-          <View style={styles.headerStat}>
-            <Clock size={18} color={Theme.colors.accent} />
-            <Text style={styles.statValue}>{timeLeft}s</Text>
+        <View style={styles.featureList}>
+          <View style={styles.featureItem}>
+            <Zap size={16} color={Theme.colors.accent} />
+            <Text style={styles.featureText}>Logic Based</Text>
           </View>
-          <View style={styles.headerStat}>
-            <Zap size={18} color={Theme.colors.warning} />
-            <Text style={styles.statValue}>{score}</Text>
+          <View style={styles.featureItem}>
+            <Trophy size={16} color={Theme.colors.warning} />
+            <Text style={styles.featureText}>Daily Best: {highScore}</Text>
           </View>
         </View>
 
-        <Animated.View style={[styles.questionArea, { opacity: fadeAnim }]}>
-          {currentQuestion && (
-            <>
-              <Text style={styles.questionPrompt}>WHICH ONE IS ODD?</Text>
-              <View style={styles.optionsGrid}>
-                {currentQuestion.items.map((item, i) => (
-                  <TouchableOpacity key={i} style={styles.optionCard} onPress={() => handleAnswer(item)}>
-                    <Text style={styles.optionName}>{item.name}</Text>
-                    <Text style={styles.optionCat}>{item.category.toUpperCase()}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
-        </Animated.View>
+        <Pressable style={styles.mainButton} onPress={startGame}>
+          <LinearGradient colors={Theme.colors.gradients.secondary} style={styles.buttonGradient}>
+            <Play size={20} color="white" fill="white" />
+            <Text style={styles.buttonText}>Start Mission</Text>
+          </LinearGradient>
+        </Pressable>
+      </LinearGradient>
+    </View>
+  )
 
-        {gameState === 'result' && (
-          <View style={styles.overlay}>
-            <View style={styles.resultCard}>
-              <Text style={styles.resultTitle}>TIME EXPIRED</Text>
-              <Text style={styles.resultScore}>{score}</Text>
-              <Text style={styles.resultLabel}>Points Earned</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={startGame}>
-                <RotateCcw size={20} color="#fff" />
-                <Text style={styles.retryText}>TRY AGAIN</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.homeBtn} onPress={() => setGameState('idle')}>
-                <Text style={styles.homeBtnText}>BACK TO MENU</Text>
-              </TouchableOpacity>
+  const renderPlaying = () => (
+    <View style={styles.playingContainer}>
+      <View style={styles.headerRow}>
+        <Pressable onPress={() => setGameState('idle')} style={styles.backButton}>
+          <Home size={20} color={Theme.colors.textMuted} />
+        </Pressable>
+        <View style={styles.timerBadge}>
+          <Clock size={16} color={Theme.colors.accent} />
+          <Text style={styles.timerText}>{timeLeft}s</Text>
+        </View>
+        <View style={styles.scoreBadge}>
+          <Text style={styles.scoreText}>{score} XP</Text>
+        </View>
+      </View>
+
+      <Animated.View style={[styles.questionArea, { opacity: fadeAnim }]}>
+        {currentQuestion && (
+          <>
+            <View style={styles.promptLabel}>
+              <Text style={styles.promptText}>FIND THE IMPOSTER</Text>
             </View>
-          </View>
+            <View style={styles.optionsGrid}>
+              {currentQuestion.items.map((item, i) => (
+                <Pressable
+                  key={i}
+                  style={({ pressed }) => [
+                    styles.optionCard,
+                    pressed && { scale: 0.98, opacity: 0.9 }
+                  ]}
+                  onPress={() => handleAnswer(item)}
+                >
+                  <LinearGradient colors={Theme.colors.gradients.glass} style={StyleSheet.absoluteFill} />
+                  <Text style={styles.optionName}>{item.name}</Text>
+                  <View style={styles.categoryTag}>
+                    <Text style={styles.categoryText}>{item.category.toUpperCase()}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </>
         )}
+      </Animated.View>
+    </View>
+  )
+
+  const renderResult = () => (
+    <View style={styles.content}>
+      <LinearGradient colors={Theme.colors.gradients.glass} style={styles.gameOverCard}>
+        <Trophy size={60} color={Theme.colors.warning} />
+        <Text style={styles.overTitle}>Mission Complete!</Text>
+
+        <View style={styles.resultDetails}>
+          <View style={styles.resultItem}>
+            <Text style={styles.resultLabel}>SCORE</Text>
+            <Text style={styles.resultValue}>{score}</Text>
+          </View>
+          <View style={styles.resultItem}>
+            <Text style={styles.resultLabel}>BEST</Text>
+            <Text style={styles.resultValue}>{highScore}</Text>
+          </View>
+        </View>
+
+        <View style={styles.overActions}>
+          <Pressable style={styles.mainButton} onPress={startGame}>
+            <LinearGradient colors={Theme.colors.gradients.secondary} style={styles.buttonGradient}>
+              <RotateCcw size={18} color="white" />
+              <Text style={styles.buttonText}>Try Again</Text>
+            </LinearGradient>
+          </Pressable>
+          <Pressable style={styles.secondaryButton} onPress={() => setGameState('idle')}>
+            <Text style={styles.secondaryButtonText}>Difficulty Menu</Text>
+          </Pressable>
+        </View>
+      </LinearGradient>
+    </View>
+  )
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient colors={Theme.colors.gradients.background} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={styles.safe}>
+        {gameState === 'idle' && renderIdle()}
+        {gameState === 'playing' && renderPlaying()}
+        {gameState === 'result' && renderResult()}
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1, padding: 20 },
-  backBtn: { width: 40, height: 40, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  menu: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  menuTitle: { fontSize: 42, fontWeight: '900', color: '#fff', marginTop: 20 },
-  menuSubtitle: { fontSize: 18, color: Theme.colors.textMuted, marginBottom: 30 },
-  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 50 },
-  highScoreText: { color: Theme.colors.text, fontSize: 20, fontWeight: 'bold' },
-  startBtn: { backgroundColor: Theme.colors.primary, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 18, paddingHorizontal: 40, borderRadius: 24, elevation: 10 },
-  startBtnText: { color: '#fff', fontSize: 20, fontWeight: '900' },
-
-  gameHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 50 },
-  headerStat: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Theme.colors.card, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 15 },
-  statValue: { color: '#fff', fontSize: 18, fontWeight: '900' },
-
-  questionArea: { flex: 1, alignItems: 'center' },
-  questionPrompt: { fontSize: 24, fontWeight: '900', color: Theme.colors.textMuted, marginBottom: 40 },
-  optionsGrid: { width: '100%', gap: 15 },
-  optionCard: { backgroundColor: Theme.colors.card, padding: 25, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-  optionName: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
-  optionCat: { fontSize: 12, color: Theme.colors.textMuted, marginTop: 5, letterSpacing: 2 },
-
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
-  resultCard: { width: '85%', backgroundColor: Theme.colors.card, padding: 40, borderRadius: 32, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  resultTitle: { fontSize: 28, fontWeight: '900', color: Theme.colors.error, marginBottom: 20 },
-  resultScore: { fontSize: 72, fontWeight: '900', color: '#fff' },
-  resultLabel: { color: Theme.colors.textMuted, marginBottom: 40 },
-  retryBtn: { width: '100%', backgroundColor: Theme.colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 20, marginBottom: 15 },
-  retryText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  homeBtn: { padding: 10 },
-  homeBtnText: { color: Theme.colors.textMuted, fontWeight: 'bold' }
+  safe: { flex: 1, padding: 24 },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gameCard: {
+    padding: 32,
+    borderRadius: 32,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  gameTitle: {
+    fontSize: 28,
+    color: Theme.colors.text,
+    fontFamily: Theme.fonts.primary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  gameDesc: {
+    fontSize: 16,
+    color: Theme.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  featureList: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 40,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 50,
+  },
+  featureText: {
+    fontSize: 12,
+    color: Theme.colors.text,
+    fontWeight: '600',
+  },
+  mainButton: {
+    width: '100%',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 12,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  playingContainer: {
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    marginBottom: 48,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  timerText: {
+    color: Theme.colors.accent,
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  scoreBadge: {
+    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 50,
+  },
+  scoreText: {
+    color: Theme.colors.secondary,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  questionArea: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  promptLabel: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 50,
+    marginBottom: 40,
+  },
+  promptText: {
+    color: Theme.colors.textMuted,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+  },
+  optionsGrid: {
+    width: '100%',
+    gap: 16,
+  },
+  optionCard: {
+    width: '100%',
+    padding: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
+  },
+  optionName: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: '800',
+    marginBottom: 8,
+    zIndex: 1,
+  },
+  categoryTag: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 50,
+    zIndex: 1,
+  },
+  categoryText: {
+    fontSize: 10,
+    color: Theme.colors.textMuted,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  gameOverCard: {
+    padding: 32,
+    borderRadius: 40,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  overTitle: {
+    fontSize: 32,
+    color: '#fff',
+    fontFamily: Theme.fonts.primary,
+    marginVertical: 24,
+    textAlign: 'center',
+  },
+  resultDetails: {
+    flexDirection: 'row',
+    gap: 32,
+    marginBottom: 40,
+  },
+  resultItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  resultLabel: {
+    fontSize: 10,
+    color: Theme.colors.textMuted,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  resultValue: {
+    fontSize: 32,
+    color: '#fff',
+    fontWeight: '900',
+  },
+  overActions: {
+    width: '100%',
+    gap: 12,
+  },
+  secondaryButton: {
+    width: '100%',
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    color: Theme.colors.textMuted,
+    fontWeight: '700',
+  },
 })
 
-import { Play } from "lucide-react-native"
+export default OddOneOutGame

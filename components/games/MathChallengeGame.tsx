@@ -3,15 +3,26 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
   Dimensions,
   Animated,
   Vibration,
   SafeAreaView,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/Theme';
-import { Play, RotateCcw, Home, Check, X, Timer } from 'lucide-react-native';
+import {
+  Play,
+  RotateCcw,
+  Home,
+  Check,
+  X,
+  Timer,
+  Calculator,
+  Zap,
+  TrendingUp,
+  Trophy
+} from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -136,34 +147,55 @@ const MathChallengeGame = () => {
   const renderStart = () => (
     <View style={styles.content}>
       <LinearGradient
-        colors={Theme.colors.gradients.primary}
+        colors={Theme.colors.gradients.glass}
         style={styles.gameCard}
       >
+        <View style={styles.iconCircle}>
+          <Calculator size={40} color={Theme.colors.primary} />
+        </View>
         <Text style={styles.gameTitle}>Math Challenge</Text>
-        <Text style={styles.gameDesc}>Solve basic arithmetic problems as fast as you can! Speed and accuracy are key.</Text>
-        <TouchableOpacity style={styles.mainButton} onPress={startGame}>
-          <Play size={24} color="#000" fill="#000" />
-          <Text style={styles.buttonText}>Start Game</Text>
-        </TouchableOpacity>
+        <Text style={styles.gameDesc}>Enhance your mental agility with rapid arithmetic problems. How many can you solve in 30 seconds?</Text>
+
+        <View style={styles.featureList}>
+          <View style={styles.featureItem}>
+            <Zap size={16} color={Theme.colors.accent} />
+            <Text style={styles.featureText}>Instant Feedback</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <TrendingUp size={16} color={Theme.colors.secondary} />
+            <Text style={styles.featureText}>Scaling Difficulty</Text>
+          </View>
+        </View>
+
+        <Pressable style={styles.mainButton} onPress={startGame}>
+          <LinearGradient colors={Theme.colors.gradients.primary} style={styles.buttonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <Play size={20} color="white" fill="white" />
+            <Text style={styles.buttonText}>Begin Training</Text>
+          </LinearGradient>
+        </Pressable>
       </LinearGradient>
     </View>
   );
 
   const renderPlaying = () => (
     <View style={styles.playingContainer}>
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Timer size={18} color={Theme.colors.textMuted} />
-          <Text style={styles.statText}>{timeLeft}s</Text>
+      <View style={styles.headerRow}>
+        <Pressable onPress={() => setGameState('start')} style={styles.backButton}>
+          <Home size={20} color={Theme.colors.textMuted} />
+        </Pressable>
+        <View style={styles.levelBadge}>
+          <Text style={styles.levelBadgeText}>LEVEL {level}</Text>
         </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>SCORE</Text>
-          <Text style={styles.statText}>{score}</Text>
+        <View style={styles.scoreBadge}>
+          <Text style={styles.scoreBadgeText}>{score} XP</Text>
         </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statLabel}>LEVEL</Text>
-          <Text style={styles.statText}>{level}</Text>
-        </View>
+      </View>
+
+      <View style={styles.timerBarContainer}>
+        <LinearGradient
+          colors={Theme.colors.gradients.primary}
+          style={[styles.timerBarFill, { width: `${(timeLeft / 30) * 100}%` }]}
+        />
       </View>
 
       <Animated.View style={[styles.questionArea, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
@@ -173,23 +205,26 @@ const MathChallengeGame = () => {
               <Text style={styles.numberText}>{currentQuestion.num1}</Text>
               <Text style={styles.opText}>{currentQuestion.operation}</Text>
               <Text style={styles.numberText}>{currentQuestion.num2}</Text>
-              <Text style={styles.opText}>=</Text>
-              <Text style={styles.numberText}>?</Text>
+              <Text style={styles.equalText}>=</Text>
+              <View style={styles.placeholderContainer}>
+                <Text style={styles.placeholderText}>?</Text>
+              </View>
             </View>
 
             <View style={styles.optionsGrid}>
               {currentQuestion.options.map((opt, i) => (
-                <TouchableOpacity
+                <Pressable
                   key={i}
-                  style={[
+                  style={({ pressed }) => [
                     styles.optionButton,
                     feedback === 'correct' && opt === currentQuestion.answer && styles.correctOption,
                     feedback === 'wrong' && opt !== currentQuestion.answer && styles.wrongOption,
+                    pressed && { opacity: 0.7, scale: 0.98 }
                   ]}
                   onPress={() => handleAnswer(opt)}
                 >
                   <Text style={styles.optionText}>{opt}</Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           </>
@@ -210,18 +245,33 @@ const MathChallengeGame = () => {
 
   const renderGameOver = () => (
     <View style={styles.content}>
-      <View style={styles.gameOverCard}>
-        <Text style={styles.overTitle}>Time's Up!</Text>
-        <Text style={styles.finalScore}>Score: {score}</Text>
-        <Text style={styles.levelReached}>Level reached: {level}</Text>
+      <LinearGradient colors={Theme.colors.gradients.glass} style={styles.gameOverCard}>
+        <Trophy size={60} color={Theme.colors.warning} style={styles.overIcon} />
+        <Text style={styles.overTitle}>Excellent Work!</Text>
+
+        <View style={styles.resultDetails}>
+          <View style={styles.resultItem}>
+            <Text style={styles.resultLabel}>SCORE</Text>
+            <Text style={styles.resultValue}>{score}</Text>
+          </View>
+          <View style={styles.resultItem}>
+            <Text style={styles.resultLabel}>MAX LEVEL</Text>
+            <Text style={styles.resultValue}>{level}</Text>
+          </View>
+        </View>
 
         <View style={styles.overActions}>
-          <TouchableOpacity style={styles.actionBtn} onPress={startGame}>
-            <RotateCcw size={20} color={Theme.colors.text} />
-            <Text style={styles.actionText}>Try Again</Text>
-          </TouchableOpacity>
+          <Pressable style={styles.mainButton} onPress={startGame}>
+            <LinearGradient colors={Theme.colors.gradients.primary} style={styles.buttonGradient}>
+              <RotateCcw size={20} color="white" />
+              <Text style={styles.buttonText}>Play Again</Text>
+            </LinearGradient>
+          </Pressable>
+          <Pressable style={styles.secondaryButton} onPress={() => setGameState('start')}>
+            <Text style={styles.secondaryButtonText}>Back to Hub</Text>
+          </Pressable>
         </View>
-      </View>
+      </LinearGradient>
     </View>
   );
 
@@ -255,110 +305,185 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     width: '100%',
     alignItems: 'center',
-    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   gameTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#000',
+    fontSize: 28,
+    color: Theme.colors.text,
+    fontFamily: Theme.fonts.primary,
     textAlign: 'center',
-    textTransform: 'uppercase',
+    marginBottom: 12,
   },
   gameDesc: {
     fontSize: 16,
-    color: '#000',
-    opacity: 0.8,
+    color: Theme.colors.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 10,
+    lineHeight: 24,
+    marginBottom: 24,
   },
-  mainButton: {
-    backgroundColor: '#fff',
+  featureList: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32,
+  },
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 30,
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 50,
-    gap: 10,
-    marginTop: 10,
+  },
+  featureText: {
+    fontSize: 12,
+    color: Theme.colors.text,
+    fontWeight: '600',
+  },
+  mainButton: {
+    width: '100%',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 12,
   },
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
+    color: 'white',
   },
   playingContainer: {
     flex: 1,
-    padding: 20,
+    padding: 24,
   },
-  statsRow: {
+  headerRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 20,
-    marginBottom: 40,
+    marginBottom: 24,
   },
-  statBox: {
-    backgroundColor: Theme.colors.card,
-    padding: 12,
-    borderRadius: 16,
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
+  },
+  levelBadge: {
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 50,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(99, 102, 241, 0.2)',
   },
-  statLabel: {
-    fontSize: 10,
-    color: Theme.colors.textMuted,
-    fontWeight: 'bold',
+  levelBadgeText: {
+    fontSize: 12,
+    color: Theme.colors.primary,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  statText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: Theme.colors.text,
+  scoreBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 50,
+  },
+  scoreBadgeText: {
+    fontSize: 14,
+    color: Theme.colors.accent,
+    fontWeight: '800',
+  },
+  timerBarContainer: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
+    marginBottom: 40,
+    overflow: 'hidden',
+  },
+  timerBarFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   questionArea: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
   },
   equation: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
-    marginBottom: 50,
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 60,
   },
   numberText: {
     fontSize: 48,
-    fontWeight: 'bold',
     color: Theme.colors.text,
+    fontFamily: Theme.fonts.primary,
   },
   opText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: Theme.colors.accent,
+    fontSize: 32,
+    color: Theme.colors.secondary,
+    fontWeight: '700',
+  },
+  equalText: {
+    fontSize: 32,
+    color: Theme.colors.textMuted,
+    fontWeight: '700',
+  },
+  placeholderContainer: {
+    width: 60,
+    height: 70,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Theme.colors.primary,
+    borderStyle: 'dashed',
+  },
+  placeholderText: {
+    fontSize: 32,
+    color: Theme.colors.primary,
+    fontWeight: '800',
   },
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 15,
+    gap: 16,
     justifyContent: 'center',
-    width: '100%',
   },
   optionButton: {
-    width: (width - 70) / 2,
-    height: 80,
-    backgroundColor: Theme.colors.card,
-    borderRadius: 20,
+    width: (width - 64) / 2,
+    height: 90,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
   optionText: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
     color: Theme.colors.text,
+    fontWeight: '800',
   },
   correctOption: {
     borderColor: Theme.colors.success,
@@ -369,59 +494,62 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   feedbackOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
     pointerEvents: 'none',
   },
   gameOverCard: {
-    backgroundColor: Theme.colors.card,
-    padding: 40,
-    borderRadius: 32,
+    padding: 32,
+    borderRadius: 40,
     width: '100%',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  overTitle: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: Theme.colors.text,
+  overIcon: {
     marginBottom: 20,
   },
-  finalScore: {
-    fontSize: 24,
-    color: Theme.colors.accent,
-    fontWeight: 'bold',
-    marginBottom: 5,
+  overTitle: {
+    fontSize: 32,
+    color: Theme.colors.text,
+    fontFamily: Theme.fonts.primary,
+    marginBottom: 32,
   },
-  levelReached: {
-    fontSize: 16,
+  resultDetails: {
+    flexDirection: 'row',
+    gap: 32,
+    marginBottom: 40,
+  },
+  resultItem: {
+    alignItems: 'center',
+  },
+  resultLabel: {
+    fontSize: 12,
     color: Theme.colors.textMuted,
-    marginBottom: 30,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  resultValue: {
+    fontSize: 36,
+    color: Theme.colors.text,
+    fontWeight: '900',
   },
   overActions: {
     width: '100%',
-    gap: 12,
+    gap: 16,
   },
-  actionBtn: {
-    flexDirection: 'row',
+  secondaryButton: {
+    width: '100%',
+    paddingVertical: 18,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    gap: 10,
   },
-  actionText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Theme.colors.text,
+  secondaryButtonText: {
+    fontSize: 16,
+    color: Theme.colors.textMuted,
+    fontWeight: '700',
   },
 });
 

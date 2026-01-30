@@ -1,15 +1,11 @@
 "use client"
 
-import { Creepster_400Regular } from "@expo-google-fonts/creepster"
-import { FredokaOne_400Regular } from "@expo-google-fonts/fredoka-one"
-import { Picker } from "@react-native-picker/picker"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
-import { Clock, Lightbulb, RotateCcw, Trophy, Brain } from "lucide-react-native"
+import { Clock, Lightbulb, RotateCcw, Trophy, Brain, ChevronLeft, Zap, TrendingUp, Home } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
-import { ActivityIndicator, Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Dimensions, StyleSheet, Text, Pressable, View } from "react-native"
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -32,14 +28,11 @@ const WORD_CATEGORIES = {
   hard: ['ALGORITHM', 'JAVASCRIPT', 'REACT', 'GEOMETRY', 'PLATYPUS', 'QUARTZ', 'ZODIAC']
 }
 
-type Difficulty = "easy" | "medium" | "hard"
+type Difficulty = "easy" | "medium" | "hard" | null
 
 export default function HangmanGame() {
   const router = useRouter()
-
-  // Fonts are now loaded in the root _layout.tsx
-
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy")
+  const [difficulty, setDifficulty] = useState<Difficulty>(null)
   const [word, setWord] = useState("")
   const [guessedLetters, setGuessedLetters] = useState<string[]>([])
   const [wrongGuesses, setWrongGuesses] = useState(0)
@@ -81,7 +74,7 @@ export default function HangmanGame() {
     )
   }
 
-  const loadWord = () => {
+  const loadWord = (diff?: Difficulty) => {
     setLoading(true)
     if (timerRef.current) clearInterval(timerRef.current)
 
@@ -89,7 +82,7 @@ export default function HangmanGame() {
     wordShake.value = 0
     hangmanScale.value = 1
 
-    const words = WORD_CATEGORIES[difficulty]
+    const words = WORD_CATEGORIES[diff || difficulty || 'easy']
     const newWord = words[Math.floor(Math.random() * words.length)]
     setWord(newWord.toUpperCase())
 
@@ -102,11 +95,6 @@ export default function HangmanGame() {
 
     timerRef.current = setInterval(() => setTimer(prev => prev + 1), 1000)
   }
-
-  useEffect(() => {
-    loadWord()
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [difficulty])
 
   const guessLetter = (letter: string) => {
     if (guessedLetters.includes(letter) || gameOver) return
@@ -151,77 +139,112 @@ export default function HangmanGame() {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  if (loading) return <View style={styles.centered}><ActivityIndicator color={Theme.colors.primary} /></View>
+  if (!difficulty) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient colors={Theme.colors.gradients.background} style={StyleSheet.absoluteFill} />
+        <SafeAreaView style={styles.content}>
+          <View style={styles.iconCircle}>
+            <Brain size={40} color={Theme.colors.primary} />
+          </View>
+          <Text style={styles.gameTitle}>Hangman Quiz</Text>
+          <Text style={styles.gameDesc}>Save the emoji by guessing the hidden word correctly. Be smart, use hints wisely!</Text>
+
+          <View style={styles.diffList}>
+            {[
+              { id: 'easy', l: 'Novice', c: Theme.colors.success, desc: 'Short simple words' },
+              { id: 'medium', l: 'scholar', c: Theme.colors.warning, desc: 'Common longer words' },
+              { id: 'hard', l: 'Sage', c: Theme.colors.error, desc: 'Rare complex terms' }
+            ].map(d => (
+              <Pressable key={d.id} onPress={() => { setDifficulty(d.id as any); loadWord(d.id as any); }}>
+                <LinearGradient colors={Theme.colors.gradients.glass} style={styles.diffCard}>
+                  <View style={[styles.diffIcon, { backgroundColor: `${d.c}20` }]}>
+                    <Zap size={20} color={d.c} />
+                  </View>
+                  <View style={styles.diffInfo}>
+                    <Text style={styles.diffLabel}>{d.l}</Text>
+                    <Text style={styles.diffSub}>{d.desc}</Text>
+                  </View>
+                  <ChevronLeft size={20} color={Theme.colors.textMuted} style={{ transform: [{ rotate: '180deg' }] }} />
+                </LinearGradient>
+              </Pressable>
+            ))}
+          </View>
+
+          <Pressable style={styles.backToTraining} onPress={() => router.back()}>
+            <Text style={styles.backText}>Return to Dashboard</Text>
+          </Pressable>
+        </SafeAreaView>
+      </View>
+    )
+  }
 
   const isWin = word.length > 0 && word.split("").every(char => guessedLetters.includes(char))
 
   return (
-    <LinearGradient colors={Theme.colors.gradients.background} style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" />
-
-        <View style={styles.header}>
-          <View style={styles.statChip}>
-            <Trophy size={18} color={Theme.colors.warning} />
-            <Text style={styles.statText}>{wins}</Text>
+    <View style={styles.container}>
+      <LinearGradient colors={Theme.colors.gradients.background} style={StyleSheet.absoluteFill} />
+      <SafeAreaView style={styles.gameSafe}>
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => setDifficulty(null)} style={styles.backButton}>
+            <Home size={20} color={Theme.colors.textMuted} />
+          </Pressable>
+          <View style={styles.statList}>
+            <View style={styles.statIconBadge}>
+              <Trophy size={16} color={Theme.colors.warning} />
+              <Text style={styles.statText}>{wins}</Text>
+            </View>
+            <View style={[styles.statIconBadge, { borderColor: Theme.colors.accent }]}>
+              <Clock size={16} color={Theme.colors.accent} />
+              <Text style={styles.statText}>{formatTime(timer)}</Text>
+            </View>
           </View>
-          <View style={styles.statChip}>
-            <Clock size={18} color={Theme.colors.accent} />
-            <Text style={styles.statText}>{formatTime(timer)}</Text>
-          </View>
-          <TouchableOpacity style={styles.hintChip} onPress={useHint} disabled={usedHint || gameOver}>
-            <Lightbulb size={18} color={usedHint ? Theme.colors.textMuted : Theme.colors.warning} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.diffPickerContainer}>
-          {(['easy', 'medium', 'hard'] as Difficulty[]).map(d => (
-            <TouchableOpacity
-              key={d}
-              onPress={() => setDifficulty(d)}
-              style={[styles.diffBtn, difficulty === d && styles.diffBtnActive, { borderColor: d === 'easy' ? Theme.colors.success : d === 'medium' ? Theme.colors.warning : Theme.colors.error }]}
-            >
-              <Text style={[styles.diffBtnText, difficulty === d && styles.diffBtnTextActive]}>{d.toUpperCase()}</Text>
-            </TouchableOpacity>
-          ))}
+          <Pressable style={[styles.hintBtn, usedHint && { opacity: 0.5 }]} onPress={useHint} disabled={usedHint || gameOver}>
+            <Lightbulb size={20} color={usedHint ? Theme.colors.textMuted : Theme.colors.warning} />
+          </Pressable>
         </View>
 
         <View style={styles.gameArea}>
           <Animated.View style={[styles.hangmanBox, hangmanAnimatedStyle]}>
             <Text style={styles.hangmanEmoji}>{hangmanStages[wrongGuesses]}</Text>
-            <View style={styles.guessBar}>
+            <View style={styles.guessTrack}>
               {[...Array(MAX_GUESSES)].map((_, i) => (
-                <View key={i} style={[styles.guessDot, i < wrongGuesses && { backgroundColor: Theme.colors.error }]} />
+                <View key={i} style={[styles.guessDot, i < wrongGuesses && { backgroundColor: Theme.colors.error, elevation: 5 }]} />
               ))}
             </View>
           </Animated.View>
 
-          <Animated.View style={[styles.wordDisplay, wordAnimatedStyle]}>
+          <Animated.View style={[styles.wordWrapper, wordAnimatedStyle]}>
             {word.split("").map((char, i) => (
               <View key={i} style={styles.letterSlot}>
-                <Text style={[styles.letterText, { fontFamily: 'FredokaOne_400Regular' }]}>
-                  {guessedLetters.includes(char) ? char : "_"}
+                <Text style={styles.letterText}>
+                  {guessedLetters.includes(char) ? char : ""}
                 </Text>
+                <View style={[styles.letterUnderline, guessedLetters.includes(char) && { backgroundColor: Theme.colors.primary }]} />
               </View>
             ))}
           </Animated.View>
 
-          <View style={styles.keyboard}>
+          <View style={styles.keyboardGrid}>
             {ALPHABET.map(letter => {
               const isGuessed = guessedLetters.includes(letter)
               const isCorrect = word.includes(letter)
               return (
-                <TouchableOpacity
+                <Pressable
                   key={letter}
                   onPress={() => guessLetter(letter)}
                   disabled={isGuessed || gameOver}
-                  style={[
-                    styles.key,
-                    isGuessed && { backgroundColor: isCorrect ? Theme.colors.success : Theme.colors.error, borderColor: 'transparent' }
+                  style={({ pressed }) => [
+                    styles.keyBox,
+                    isGuessed && {
+                      backgroundColor: isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      borderColor: isCorrect ? Theme.colors.success : Theme.colors.error
+                    },
+                    pressed && !isGuessed && { scale: 0.9, opacity: 0.7 }
                   ]}
                 >
-                  <Text style={[styles.keyText, isGuessed && { color: '#fff' }]}>{letter}</Text>
-                </TouchableOpacity>
+                  <Text style={[styles.keyChar, isGuessed && { color: isCorrect ? Theme.colors.success : Theme.colors.error }]}>{letter}</Text>
+                </Pressable>
               )
             })}
           </View>
@@ -230,55 +253,308 @@ export default function HangmanGame() {
         {gameOver && (
           <Animated.View style={[styles.overlay, gameOverAnimatedStyle]}>
             <LinearGradient colors={Theme.colors.gradients.glass} style={styles.gameOverCard}>
-              <Text style={styles.overEmoji}>{isWin ? "🏆" : "🥀"}</Text>
-              <Text style={styles.overTitle}>{isWin ? "VICTORY!" : "GAME OVER"}</Text>
-              <Text style={styles.overWord}>The word was: <Text style={{ color: Theme.colors.primary }}>{word}</Text></Text>
-              <TouchableOpacity style={styles.restartBtn} onPress={loadWord}>
-                <RotateCcw size={20} color="#fff" />
-                <Text style={styles.restartText}>PLAY AGAIN</Text>
-              </TouchableOpacity>
+              <View style={styles.resultIconCircle}>
+                <Text style={styles.overEmojiText}>{isWin ? "🌸" : "💀"}</Text>
+              </View>
+              <Text style={styles.overTitle}>{isWin ? "Wordsmith!" : "Defeated"}</Text>
+              <Text style={styles.overSubtitle}>The hidden word was:</Text>
+              <Text style={styles.correctWordText}>{word}</Text>
+
+              <View style={styles.overActions}>
+                <Pressable style={styles.mainButton} onPress={() => loadWord()}>
+                  <LinearGradient colors={Theme.colors.gradients.primary} style={styles.buttonGradient}>
+                    <RotateCcw size={18} color="white" />
+                    <Text style={styles.buttonText}>New Word</Text>
+                  </LinearGradient>
+                </Pressable>
+                <Pressable style={styles.secondaryButton} onPress={() => setDifficulty(null)}>
+                  <Text style={styles.secondaryButtonText}>Difficulty Menu</Text>
+                </Pressable>
+              </View>
             </LinearGradient>
           </Animated.View>
         )}
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1, padding: 20 },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Theme.colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  statChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.colors.card, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  statText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  hintChip: { backgroundColor: Theme.colors.card, padding: 10, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-
-  diffPickerContainer: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 30 },
-  diffBtn: { paddingVertical: 6, paddingHorizontal: 15, borderRadius: 12, borderWidth: 2, backgroundColor: 'transparent' },
-  diffBtnActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
-  diffBtnText: { color: Theme.colors.textMuted, fontSize: 12, fontWeight: '900' },
-  diffBtnTextActive: { color: '#fff' },
-
-  gameArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  hangmanBox: { alignItems: 'center', marginBottom: 40 },
-  hangmanEmoji: { fontSize: 100 },
-  guessBar: { flexDirection: 'row', gap: 6, marginTop: 10 },
-  guessDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.1)' },
-
-  wordDisplay: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 50 },
-  letterSlot: { width: 35, height: 45, borderBottomWidth: 3, borderBottomColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  letterText: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
-
-  keyboard: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
-  key: { width: (width - 100) / 7, height: 40, backgroundColor: Theme.colors.card, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  keyText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: 20 },
-  gameOverCard: { width: '100%', padding: 40, borderRadius: 32, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  overEmoji: { fontSize: 80, marginBottom: 20 },
-  overTitle: { fontSize: 36, fontWeight: '900', color: '#fff', marginBottom: 10 },
-  overWord: { fontSize: 18, color: Theme.colors.textMuted, marginBottom: 30 },
-  restartBtn: { backgroundColor: Theme.colors.primary, flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 32, borderRadius: 20, gap: 12 },
-  restartText: { color: '#fff', fontSize: 18, fontWeight: '900' },
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  gameTitle: {
+    fontSize: 32,
+    color: Theme.colors.text,
+    fontFamily: Theme.fonts.primary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  gameDesc: {
+    fontSize: 16,
+    color: Theme.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  diffList: {
+    width: '100%',
+    gap: 16,
+    marginBottom: 40,
+  },
+  diffCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  diffIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  diffInfo: {
+    flex: 1,
+  },
+  diffLabel: {
+    fontSize: 18,
+    color: Theme.colors.text,
+    fontWeight: '700',
+    marginBottom: 2,
+    textTransform: 'capitalize',
+  },
+  diffSub: {
+    fontSize: 12,
+    color: Theme.colors.textMuted,
+    fontWeight: '600',
+  },
+  backToTraining: {
+    padding: 16,
+  },
+  backText: {
+    fontSize: 14,
+    color: Theme.colors.textMuted,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  gameSafe: {
+    flex: 1,
+    padding: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    marginBottom: 40,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statList: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statIconBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  statText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '800',
+  },
+  hintBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  gameArea: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  hangmanBox: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  hangmanEmoji: {
+    fontSize: 100,
+  },
+  guessTrack: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  guessDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  wordWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 60,
+  },
+  letterSlot: {
+    width: 36,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  letterText: {
+    color: '#fff',
+    fontSize: 28,
+    fontFamily: Theme.fonts.primary,
+    marginBottom: 4,
+  },
+  letterUnderline: {
+    width: '100%',
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 2,
+  },
+  keyboardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  keyBox: {
+    width: (width - 100) / 7,
+    height: 44,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  keyChar: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 15, 30, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 1000,
+  },
+  gameOverCard: {
+    width: '100%',
+    padding: 32,
+    borderRadius: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  resultIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  overEmojiText: {
+    fontSize: 44,
+  },
+  overTitle: {
+    fontSize: 32,
+    color: '#fff',
+    fontFamily: Theme.fonts.primary,
+    marginBottom: 12,
+  },
+  overSubtitle: {
+    fontSize: 14,
+    color: Theme.colors.textMuted,
+    marginBottom: 4,
+  },
+  correctWordText: {
+    fontSize: 24,
+    color: Theme.colors.primary,
+    fontWeight: '900',
+    marginBottom: 40,
+    letterSpacing: 2,
+  },
+  overActions: {
+    width: '100%',
+    gap: 12,
+  },
+  mainButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  secondaryButton: {
+    width: '100%',
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    color: Theme.colors.textMuted,
+    fontWeight: '700',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 })

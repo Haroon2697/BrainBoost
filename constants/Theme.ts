@@ -25,9 +25,22 @@ export const Theme = {
   },
 
   fonts: {
-    regular: 'System', // Fallback to System, but we can use FredokaOne/Outfit if loaded
+    primary: 'FredokaOne_400Regular',
+    game: 'Creepster_400Regular',
+    regular: 'System',
     bold: 'System',
     heading: 'System',
+  },
+
+  typography: {
+    heading: {
+      fontFamily: 'FredokaOne_400Regular',
+      fontSize: 24,
+    },
+    subheading: {
+      fontFamily: 'FredokaOne_400Regular',
+      fontSize: 18,
+    },
   },
 
   spacing: {
@@ -49,7 +62,6 @@ export const Theme = {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    backdropFilter: 'blur(10px)', // For web/ios support where applicable
   },
 
   shadow: {
