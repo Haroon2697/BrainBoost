@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { runOnJS } from 'react-native-reanimated';
 import {
     StyleSheet,
     Text,
@@ -12,6 +13,7 @@ import {
     PanResponder,
     Animated,
 } from 'react-native';
+import { GestureDetector, Gesture, Directions } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/Theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -154,30 +156,20 @@ const TwoZeroFourEightGame = () => {
         return true;
     };
 
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: (evt, gestureState) => {
-                // Only take over if movement is more than 10 pixels
-                return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
-            },
-            onPanResponderRelease: (e, gestureState) => {
-                const { dx, dy } = gestureState;
-                const absX = Math.abs(dx);
-                const absY = Math.abs(dy);
+    const flingUp = Gesture.Fling().direction(Directions.UP).onStart(() => {
+        runOnJS(move)('up');
+    });
+    const flingDown = Gesture.Fling().direction(Directions.DOWN).onStart(() => {
+        runOnJS(move)('down');
+    });
+    const flingLeft = Gesture.Fling().direction(Directions.LEFT).onStart(() => {
+        runOnJS(move)('left');
+    });
+    const flingRight = Gesture.Fling().direction(Directions.RIGHT).onStart(() => {
+        runOnJS(move)('right');
+    });
 
-                if (Math.max(absX, absY) < 30) return; // Ignore small movements
-
-                if (absX > absY) {
-                    if (dx > 30) move('right');
-                    else if (dx < -30) move('left');
-                } else {
-                    if (dy > 30) move('down');
-                    else if (dy < -30) move('up');
-                }
-            },
-        })
-    ).current;
+    const composedGestures = Gesture.Race(flingUp, flingDown, flingLeft, flingRight);
 
     useEffect(() => {
         if (score > bestScore) setBestScore(score);
@@ -254,13 +246,15 @@ const TwoZeroFourEightGame = () => {
                 </View>
 
                 <View style={styles.boardWrapper}>
-                    <View style={styles.board} {...panResponder.panHandlers}>
-                        {grid.map((row, r) => (
-                            <View key={r} style={styles.row}>
-                                {row.map((val, c) => renderCell(val, r, c))}
-                            </View>
-                        ))}
-                    </View>
+                    <GestureDetector gesture={composedGestures}>
+                        <View style={styles.board}>
+                            {grid.map((row, r) => (
+                                <View key={r} style={styles.row}>
+                                    {row.map((val, c) => renderCell(val, r, c))}
+                                </View>
+                            ))}
+                        </View>
+                    </GestureDetector>
                 </View>
 
                 <View style={styles.tipContainer}>
