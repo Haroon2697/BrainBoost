@@ -148,18 +148,7 @@ const games = [
     rating: 4.6,
     time: "No Limit",
   },
-  {
-    id: "11",
-    name: "2048 Master",
-    description: "Numerical Strategy",
-    icon: Zap,
-    route: "/game/2048",
-    category: "Logic",
-    difficulty: "Hard",
-    color: "#a855f7",
-    rating: 4.9,
-    time: "No Limit",
-  },
+
 ]
 
 export default function GamesScreen() {

@@ -12,9 +12,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: Theme.colors.background,
           borderTopColor: "rgba(255,255,255,0.05)",
-          height: 64 + insets.bottom,
-          paddingBottom: insets.bottom + 8,
-          paddingTop: 8,
+          height: 80 + insets.bottom,
+          paddingBottom: insets.bottom + 20,
+          paddingTop: 12,
           position: "absolute",
           elevation: 0,
         },
