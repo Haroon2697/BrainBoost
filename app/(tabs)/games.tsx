@@ -19,7 +19,8 @@ import {
   Grid3X3,
   Hash,
 } from "lucide-react-native"
-import { Dimensions, Pressable, StyleSheet, Text, View, TextInput, ScrollView, SafeAreaView, StatusBar, ImageBackground } from "react-native"
+import { Dimensions, Pressable, StyleSheet, Text, View, TextInput, ScrollView, StatusBar, ImageBackground } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useState, useMemo } from "react"
 
 const { width } = Dimensions.get("window")
@@ -153,6 +154,7 @@ const games = [
 
 export default function GamesScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
 
@@ -212,7 +214,7 @@ export default function GamesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={Theme.colors.gradients.background} style={StyleSheet.absoluteFill} />
 
@@ -259,7 +261,7 @@ export default function GamesScreen() {
           {filteredGames.map(renderGameCard)}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 

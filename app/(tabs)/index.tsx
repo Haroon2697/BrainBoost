@@ -1,7 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { Brain, Clock, Target, Zap, ChevronRight, Trophy, Activity } from "lucide-react-native"
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View, SafeAreaView, StatusBar } from "react-native"
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View, StatusBar } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Theme } from "../../constants/Theme"
 
 const { width } = Dimensions.get("window")
@@ -21,8 +22,10 @@ const recentActivities = [
 export default function HomeScreen() {
   const router = useRouter()
 
+  const insets = useSafeAreaInsets()
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={Theme.colors.gradients.background} style={StyleSheet.absoluteFill} />
 
@@ -114,7 +117,7 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 
